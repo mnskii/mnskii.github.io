@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qR5Qb7PLO48BB95FktUorzUNzj9ozM3a8AoXzTJf0o4='; base-uri 'none'; form-action 'none'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Conexão Drive — Glossário Língua de Sinais</title></head><body><h1>Glossário Língua de Sinais</h1><p id="status">Verificando o retorno da conexão…</p><p><a href="https://script.google.com/macros/s/AKfycbz9OPnIPn70XBgsrEuZ_xjb0FsQ_0wmZ4YrlZanr6GjhcFWMD-JQHPRYRS3ospHRlgH/exec" rel="noreferrer">Voltar ao aplicativo</a></p><noscript>Ative o JavaScript e inicie uma nova conexão no aplicativo.</noscript><script>(() => {
+  'use strict';
+  const query = new URLSearchParams(location.search);
+  history.replaceState(null, '', location.pathname);
+  const status = document.getElementById('status');
+  const state = query.get('state') || '';
+  const code = query.get('code');
+  const error = query.get('error');
+  const invalid = query.getAll('state').length !== 1 || !/^[a-f0-9]{64}$/.test(state) ||
+    query.getAll('code').length > 1 || query.getAll('error').length > 1 ||
+    (code !== null) === (error !== null) ||
+    (code !== null && (!code || code.length > 4096 || /[\x00-\x20\x7f]/.test(code))) ||
+    (error !== null && !/^[a-zA-Z0-9_]{1,100}$/.test(error));
+  if (invalid) { status.textContent = 'Este retorno não é válido. Abra o aplicativo e inicie uma nova conexão com o Drive.'; return; }
+  const destination = new URL('https://script.google.com/macros/s/AKfycbz9OPnIPn70XBgsrEuZ_xjb0FsQ_0wmZ4YrlZanr6GjhcFWMD-JQHPRYRS3ospHRlgH/exec');
+  destination.searchParams.set('state', state);
+  destination.searchParams.set(code !== null ? 'code' : 'error', code !== null ? code : error);
+  status.textContent = 'Concluindo a conexão com o Drive…';
+  location.replace(destination.href);
+})();</script></body></html>
