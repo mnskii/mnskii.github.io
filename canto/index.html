@@ -115,7 +115,7 @@ saveBtn.onclick=saveWord;if(saveRequested)saveWord()}
 function addClickableWords(p,line){p.replaceChildren();const tokens=line.match(/[A-Za-zÀ-ÿ]+(?:['’][A-Za-zÀ-ÿ]+)*|[^A-Za-zÀ-ÿ]+/g)||[];for(const t of tokens){if(!/^[A-Za-zÀ-ÿ]/.test(t)){p.append(document.createTextNode(t));continue}const b=document.createElement('button');b.className='word';b.textContent=t;b.type='button';b.setAttribute('aria-label','Traduzir '+t);let start=0;const begin=()=>{start=Date.now();pressTriggered=false;clearTimeout(pressTimer);pressTimer=setTimeout(()=>{pressTriggered=true;wordAction(t,true)},650)};const cancel=()=>clearTimeout(pressTimer);b.addEventListener('pointerdown',begin);b.addEventListener('pointerup',cancel);b.addEventListener('pointercancel',cancel);b.addEventListener('pointerleave',cancel);b.addEventListener('contextmenu',e=>{e.preventDefault();cancel();pressTriggered=true;wordAction(t,true)});b.onclick=()=>{if(pressTriggered){pressTriggered=false;return}wordAction(t,false)};p.append(b)}}
 let driveToken='',driveFileId='';
 const driveScope='https://www.googleapis.com/auth/drive.appdata',driveName='treinador-canto-backup.json';
-$('googleClientId').value=localStorage.getItem('canto-google-client-id')||'';
+$('googleClientId').value=localStorage.getItem('canto-google-client-id')||'832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com';
 $('googleClientId').onchange=()=>localStorage.setItem('canto-google-client-id',$('googleClientId').value.trim());
 function googleMessage(s){$('googleStatus').textContent=' '+s}
 function gisReady(){return !!(window.google&&google.accounts&&google.accounts.oauth2)}
