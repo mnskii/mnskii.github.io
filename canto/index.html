@@ -109,12 +109,47 @@ async function translateWord(word,lang){const k=word.toLowerCase()+'|'+lang;if(c
 let pressTimer=null,pressTriggered=false,translationDismissTimer=null,translationRequestId=0;
 function scheduleTranslationDismiss(panel){clearTimeout(translationDismissTimer);translationDismissTimer=setTimeout(()=>{panel.hidden=true;panel.replaceChildren()},5000)}
 const offlinePT={i:'eu',you:'você',my:'meu',me:'mim',love:'amor',heart:'coração',night:'noite',day:'dia',dream:'sonho',fire:'fogo',soul:'alma',goodbye:'adeus',cry:'chorar',lonely:'solitário',breaks:'quebra',missing:'sentindo falta',more:'mais',the:'o/a',a:'um/uma',in:'em',and:'e',for:'para',when:'quando',there:'lá',here:'aqui',know:'saber',never:'nunca',always:'sempre',song:'música',sing:'cantar',fall:'cair',bell:'sino',tolls:'toca',with:'com',without:'sem',we:'nós',they:'eles/elas',who:'quem',where:'onde',why:'por quê',what:'o que',yes:'sim',no:'não',time:'tempo',world:'mundo',see:'ver',look:'olhar',go:'ir',come:'vir',back:'voltar',one:'um',two:'dois',three:'três',blue:'azul',white:'branco',black:'preto'};
-async function wordAction(word,saveRequested,anchor){const panel=$('wordPanel'),lang=$('translationLang').value;const requestId=++translationRequestId;clearTimeout(translationDismissTimer);if(anchor)anchor.insertAdjacentElement('afterend',panel);panel.hidden=false;panel.replaceChildren();const title=document.createElement('strong');title.textContent=word;panel.append(title);const info=document.createElement('p');info.textContent='Traduzindo…';panel.append(info);
-const saveBtn=document.createElement('button');saveBtn.textContent='Salvar no vocabulário';panel.append(saveBtn);
-let translation='';try{translation=await translateWord(word,lang);if(requestId!==translationRequestId)return;info.textContent=translation}catch(e){if(requestId!==translationRequestId)return;if(lang==='pt'&&offlinePT[word.toLowerCase()]){translation=offlinePT[word.toLowerCase()];info.textContent=translation+' (dicionário básico offline)'}else{info.textContent='Tradução indisponível no momento. Tente novamente com internet.'}}
-const saveWord=()=>{if(!translation){alert('Aguarde uma tradução válida.');return}if(!vocab.some(x=>x.word.toLowerCase()===word.toLowerCase()&&x.lang===lang)){vocab.unshift({word,translation,lang,song:$('song').value,createdAt:new Date().toISOString()});saveVocab()}info.textContent=translation+' · Palavra salva!';if(!$('vocabList').hidden)displayVocab()};
-saveBtn.onclick=()=>{saveWord();scheduleTranslationDismiss(panel)};if(saveRequested&&translation)saveWord();scheduleTranslationDismiss(panel)}
-function addClickableWords(p,line){p.replaceChildren();const tokens=line.match(/[A-Za-zÀ-ÿ]+(?:['’][A-Za-zÀ-ÿ]+)*|[^A-Za-zÀ-ÿ]+/g)||[];for(const t of tokens){if(!/^[A-Za-zÀ-ÿ]/.test(t)){p.append(document.createTextNode(t));continue}const b=document.createElement('button');b.className='word';b.textContent=t;b.type='button';b.setAttribute('aria-label','Traduzir '+t);let start=0;const begin=()=>{start=Date.now();pressTriggered=false;clearTimeout(pressTimer);pressTimer=setTimeout(()=>{pressTriggered=true;wordAction(t,true,p)},650)};const cancel=()=>clearTimeout(pressTimer);b.addEventListener('pointerdown',begin);b.addEventListener('pointerup',cancel);b.addEventListener('pointercancel',cancel);b.addEventListener('pointerleave',cancel);b.style.touchAction='manipulation';b.addEventListener('contextmenu',e=>{e.preventDefault();cancel();pressTriggered=true;wordAction(t,true)});b.onclick=()=>{if(pressTriggered){pressTriggered=false;return}wordAction(t,false,p)};p.append(b)}}
+async function wordAction(word,mode,anchor){
+ const panel=$('wordPanel'),lang=$('translationLang').value,requestId=++translationRequestId;
+ clearTimeout(translationDismissTimer);
+ if(anchor)anchor.insertAdjacentElement('afterend',panel);
+ panel.hidden=false;panel.replaceChildren();
+ const heading=document.createElement('strong');heading.textContent=word;panel.append(heading);
+ const info=document.createElement('p');info.textContent='Traduzindo…';panel.append(info);
+ let translation='';
+ try{translation=await translateWord(word,lang);if(requestId!==translationRequestId)return}
+ catch(e){if(requestId!==translationRequestId)return;if(lang==='pt'&&offlinePT[word.toLowerCase()])translation=offlinePT[word.toLowerCase()]}
+ if(mode==='view'){info.textContent=translation||'Tradução indisponível. Tente novamente.';scheduleTranslationDismiss(panel);return}
+ info.remove();
+ const label=document.createElement('label');label.textContent='Tradução (editável)';
+ const field=document.createElement('input');field.value=translation;field.placeholder='Digite ou corrija a tradução';field.style.width='100%';field.style.boxSizing='border-box';
+ label.append(field);panel.append(label);
+ const saveBtn=document.createElement('button');saveBtn.textContent='💾 Salvar em meu vocabulário';
+ saveBtn.onclick=()=>{
+  const value=field.value.trim();if(!value){alert('Digite uma tradução antes de salvar.');return}
+  const existing=vocab.find(x=>x.word.toLowerCase()===word.toLowerCase()&&x.lang===lang);
+  if(existing){existing.translation=value;existing.song=$('song').value}else vocab.unshift({word,translation:value,lang,song:$('song').value,createdAt:new Date().toISOString()});
+  saveVocab();if(!$('vocabList').hidden)displayVocab();panel.hidden=true;panel.replaceChildren()
+ };
+ const closeBtn=document.createElement('button');closeBtn.textContent='Fechar';closeBtn.onclick=()=>{panel.hidden=true;panel.replaceChildren()};
+ panel.append(saveBtn,closeBtn);
+}
+function addClickableWords(p,line){
+ p.replaceChildren();const tokens=line.match(/[A-Za-zÀ-ÿ]+(?:['’][A-Za-zÀ-ÿ]+)*|[^A-Za-zÀ-ÿ]+/g)||[];
+ for(const t of tokens){
+  if(!/^[A-Za-zÀ-ÿ]/.test(t)){p.append(document.createTextNode(t));continue}
+  const b=document.createElement('button');b.className='word';b.textContent=t;b.type='button';b.setAttribute('aria-label','Traduzir '+t);
+  let held=false,longTimer=null,lastTap=0;
+  b.addEventListener('pointerdown',()=>{held=false;clearTimeout(longTimer);longTimer=setTimeout(()=>{held=true;lastTap=0;wordAction(t,'edit',p)},650)});
+  const cancel=()=>clearTimeout(longTimer);
+  b.addEventListener('pointerup',cancel);b.addEventListener('pointercancel',cancel);b.addEventListener('pointerleave',cancel);
+  b.style.touchAction='manipulation';
+  b.addEventListener('contextmenu',e=>{e.preventDefault();cancel();held=true;lastTap=0;wordAction(t,'edit',p)});
+  b.addEventListener('click',()=>{if(held){held=false;return}const now=Date.now();if(now-lastTap<450){lastTap=0;wordAction(t,'edit',p)}else{lastTap=now;wordAction(t,'view',p)}});
+  p.append(b)
+ }
+}
+
 let driveToken='',driveFileId='';
 const driveScope='https://www.googleapis.com/auth/drive.appdata',driveName='treinador-canto-backup.json';
 $('googleClientId').value=localStorage.getItem('canto-google-client-id')||'832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com';
