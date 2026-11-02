@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id),key='treinador-canto-v4',oldkey='treinador-canto-v3';
 let library={},active='',rows=[];
 // Navegação flutuante: arraste pressionando o espaço entre os botões.
-(()=>{const nav=$('floatingNav');let x=0,y=0,sx=0,sy=0,moving=false;nav.addEventListener('pointerdown',e=>{if(e.target.tagName==='BUTTON')return;moving=true;sx=e.clientX;sy=e.clientY;const r=nav.getBoundingClientRect();x=r.left;y=r.top;nav.setPointerCapture(e.pointerId)});nav.addEventListener('pointermove',e=>{if(!moving)return;nav.style.left=Math.max(0,Math.min(innerWidth-nav.offsetWidth,x+e.clientX-sx))+'px';nav.style.top=Math.max(0,Math.min(innerHeight-nav.offsetHeight,y+e.clientY-sy))+'px';nav.style.right='auto';nav.style.bottom='auto'});nav.addEventListener('pointerup',()=>moving=false);nav.addEventListener('pointercancel',()=>moving=false)})();
+(()=>{const nav=$('floatingNav');let x=0,y=0,sx=0,sy=0,moving=false;nav.addEventListener('pointerdown',e=>{moving=true;sx=e.clientX;sy=e.clientY;const r=nav.getBoundingClientRect();x=r.left;y=r.top;nav.setPointerCapture(e.pointerId)});nav.addEventListener('pointermove',e=>{if(!moving)return;nav.style.left=Math.max(0,Math.min(innerWidth-nav.offsetWidth,x+e.clientX-sx))+'px';nav.style.top=Math.max(0,Math.min(innerHeight-nav.offsetHeight,y+e.clientY-sy))+'px';nav.style.right='auto';nav.style.bottom='auto'});nav.addEventListener('pointerup',()=>moving=false);nav.addEventListener('pointercancel',()=>moving=false)})();
 $('goTop').onclick=()=>scrollTo({top:0,behavior:'smooth'});
 $('goBase').onclick=()=>$('songReview').scrollIntoView({behavior:'smooth',block:'start'});
 let sheetAccessToken='',sheetFiles=[];
