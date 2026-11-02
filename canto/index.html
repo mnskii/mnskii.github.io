@@ -147,14 +147,26 @@ async function wordAction(word,mode,anchor){
 }
 function addClickableWords(p,line){
  p.replaceChildren();const tokens=line.match(/[A-Za-zÀ-ÿ]+(?:['’][A-Za-zÀ-ÿ]+)*|[^A-Za-zÀ-ÿ]+/g)||[];
- for(const t of tokens){if(!/^[A-Za-zÀ-ÿ]/.test(t)){p.append(document.createTextNode(t));continue}
- const b=document.createElement('button');b.className='word';b.textContent=t;b.type='button';b.setAttribute('aria-label','Traduzir '+t);b.style.touchAction='manipulation';
- let taps=0,tapTimer=null,longTimer=null,held=false;
- b.addEventListener('pointerdown',()=>{held=false;clearTimeout(longTimer);longTimer=setTimeout(()=>{held=true;clearTimeout(tapTimer);taps=0;wordAction(t,'edit',p)},700)});
- for(const ev of ['pointerup','pointercancel','pointerleave'])b.addEventListener(ev,()=>clearTimeout(longTimer));
- b.addEventListener('contextmenu',e=>{e.preventDefault();clearTimeout(longTimer);clearTimeout(tapTimer);taps=0;held=true;wordAction(t,'edit',p)});
- b.addEventListener('click',()=>{if(held){held=false;return}taps++;clearTimeout(tapTimer);if(taps>=3){taps=0;phraseAction(line,p);return}tapTimer=setTimeout(()=>{const n=taps;taps=0;wordAction(t,n===2?'edit':'view',p)},440)});
- p.append(b)}
+ // A contagem é compartilhada entre todas as palavras do verso, sem depender de click/dblclick do Safari.
+ let taps=0,lastTap=0,tapTimer=null;
+ const reset=()=>{taps=0;lastTap=0;clearTimeout(tapTimer)};
+ for(const t of tokens){
+  if(!/^[A-Za-zÀ-ÿ]/.test(t)){p.append(document.createTextNode(t));continue}
+  const b=document.createElement('button');b.className='word';b.textContent=t;b.type='button';b.setAttribute('aria-label','Traduzir '+t);b.style.touchAction='manipulation';b.style.userSelect='none';b.style.webkitUserSelect='none';b.style.webkitTouchCallout='none';
+  let downAt=0,longTimer=null,longHandled=false,lastPointer=0;
+  const handleTap=()=>{const now=Date.now();if(now-lastTap>850)taps=0;lastTap=now;taps++;clearTimeout(tapTimer);
+   if(taps>=3){reset();phraseAction(line,p);return}
+   tapTimer=setTimeout(()=>{const count=taps;reset();wordAction(t,count===2?'edit':'view',p)},850)
+  };
+  b.addEventListener('pointerdown',e=>{downAt=Date.now();longHandled=false;clearTimeout(longTimer);longTimer=setTimeout(()=>{longHandled=true;reset();wordAction(t,'edit',p)},1000)});
+  b.addEventListener('pointerup',e=>{clearTimeout(longTimer);if(longHandled)return;lastPointer=Date.now();if(Date.now()-downAt<1000)handleTap()});
+  b.addEventListener('pointercancel',()=>clearTimeout(longTimer));
+  b.addEventListener('pointerleave',()=>clearTimeout(longTimer));
+  b.addEventListener('contextmenu',e=>{e.preventDefault();clearTimeout(longTimer);if(!longHandled){longHandled=true;reset();wordAction(t,'edit',p)}});
+  // Suporte a teclado e navegadores sem Pointer Events; evita contar duas vezes no iPhone.
+  b.addEventListener('click',e=>{if(Date.now()-lastPointer<900)return;if(e.detail===0)handleTap()});
+  p.append(b)
+ }
 }
 
 let driveToken='',driveFileId='';
