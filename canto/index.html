@@ -1,8 +1,7 @@
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Treinador de Canto</title><style>body{font:16px system-ui;background:#0c1425;color:#fff;margin:0;padding:18px;max-width:760px;margin:auto}textarea,input,select,button{font:inherit;border-radius:10px;padding:11px;border:1px solid #52627d}textarea{width:100%;height:190px;box-sizing:border-box;background:#192943;color:white}input{background:#192943;color:white;max-width:100%}button{background:#347ce5;color:white;margin:4px;cursor:pointer}.verse{background:#1c2b44;border-radius:14px;padding:14px;margin:12px 0}.verse input{width:100%;box-sizing:border-box}small{color:#b7c8e1}h1{font-size:1.5rem} .word{display:inline;border:0;background:transparent;color:#fff;padding:1px 2px;margin:0;text-decoration:underline;text-decoration-color:#5475a7;text-underline-offset:3px;border-radius:2px}.word:focus{outline:2px solid #8bc6ff}#wordPanel,#vocabPanel,#googlePanel{background:#1c2b44;padding:12px;border-radius:12px;margin:10px 0}#wordPanel[hidden],#phrasePanel[hidden]{display:none}#vocabList{max-height:240px;overflow:auto}#vocabList p{border-bottom:1px solid #405574;padding-bottom:8px} .hint{font-size:.85rem;color:#b7c8e1}button{background:#263d5e;border:1px solid #405574;color:#dceaff;padding:7px 10px;margin:2px;border-radius:8px;font-size:.88rem;transition:background .15s}button:active{background:#365b83} .verse{padding:9px 11px;margin:6px 0}.verse p{margin:5px 0}.verse input{padding:5px 7px;margin:0;min-height:0;height:auto;white-space:normal;overflow-wrap:anywhere}.word{padding:1px 2px;background:transparent;border:0;margin:0;font-size:inherit}#verses .verse{overflow-wrap:anywhere}#verses .verse input{font-size:.9rem}#floatingNav{position:fixed;right:12px;bottom:85px;z-index:100;background:#20344f;border:1px solid #617fa2;border-radius:14px;padding:5px;touch-action:none;box-shadow:0 3px 14px #0006;user-select:none}#floatingNav button{display:block;width:70px;margin:2px;font-size:.83rem}#sheetExportPanel{padding:12px;background:#1c2b44;border-radius:10px;margin-top:8px}#sheetExportPanel input,#sheetExportPanel select{box-sizing:border-box;width:100%;margin:4px 0}#googlePanel,#vocabPanel,#phraseLibrary,#libraryTools{display:none!important}#songReview{scroll-margin-top:10px}</style><h1>🎤 Treinador de Canto</h1><div id="googlePanel" hidden><strong>☁️ Seus dados</strong><p class="hint">Suas músicas e palavras ficam salvas neste navegador. A conexão com Google Drive requer configuração do acesso Google.</p><p><label class="hint">ID do cliente OAuth (Google Cloud) <input id="googleClientId" value="832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com" placeholder="...apps.googleusercontent.com" style="width:100%;box-sizing:border-box"></label></p><button id="googleConnect">Vincular conta Google</button><button id="googleBackup" disabled>Salvar no Drive</button><button id="googleRestore" disabled>Restaurar do Drive</button><span id="googleStatus" class="hint"></span></div><p>Cole a letra abaixo: cada linha vira um verso com áudio em inglês e transcrição automática aproximada e editável.</p><input id="song" placeholder="Nome da música" value=""><p><input id="artist" placeholder="Artista (opcional)" style="width:100%;box-sizing:border-box"></p><section class="verse" id="youtubeSection">
 <strong>▶ Encontrar e reproduzir música</strong>
 <p class="hint">Digite o título e o artista acima e procure uma gravação no YouTube. Escolha o resultado para reproduzir aqui, sem sair do Treinador de Canto.</p>
-<label>Chave da API do YouTube <input id="youtubeApiKey" type="password" autocomplete="off" placeholder="Cole sua chave da API do Google" style="width:100%;box-sizing:border-box"></label>
-<p class="hint">A chave fica salva somente neste navegador. É necessária uma chave da YouTube Data API v3. <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer" style="color:#9cc7ff">Ativar YouTube Data API v3</a>.</p>
+<p class="hint">Pesquise e reproduza gravações diretamente pelo player incorporado do YouTube.</p>
 <button id="searchYouTube" type="button">🔎 Buscar no YouTube</button>
 <div id="youtubeResults" aria-live="polite"></div>
 <div id="youtubePlayer" hidden class="verse" style="padding:0;overflow:hidden">
@@ -29,9 +28,7 @@ $('appendSheet').onclick=async()=>{const id=$('sheetFile').value,tab=$('sheetTab
 
 
 // YouTube Data API: pesquisa por título + artista e reproduz no player oficial incorporado.
-const ytKeyInput=$('youtubeApiKey');
-ytKeyInput.value=localStorage.getItem('canto_youtube_api_key')||'';
-ytKeyInput.addEventListener('change',()=>{localStorage.setItem('canto_youtube_api_key',ytKeyInput.value.trim());$('youtubeStatus').textContent='Chave salva neste navegador.'});
+const YOUTUBE_PROXY_URL='COLE_A_URL_DO_WEB_APP_APPS_SCRIPT_AQUI';
 function playYouTube(videoId,title){
  const box=$('youtubePlayer'),frame=$('youtubePlayerFrame');
  frame.replaceChildren();
@@ -42,17 +39,21 @@ function playYouTube(videoId,title){
  frame.append(iframe);box.hidden=false;$('youtubeNowPlaying').textContent='Reproduzindo: '+title;$('youtubeStatus').textContent='Use os controles do player para iniciar, pausar e ajustar o volume.';
 }
 async function searchYouTube(){
- const title=$('song').value.trim(),artist=$('artist').value.trim(),key=ytKeyInput.value.trim(),out=$('youtubeResults');
+ const title=$('song').value.trim(),artist=$('artist').value.trim(),out=$('youtubeResults');
  if(!title){$('youtubeStatus').textContent='Digite o nome da música primeiro.';return}
- if(!key){$('youtubeStatus').textContent='Cole sua chave da YouTube Data API v3 para pesquisar.';ytKeyInput.focus();return}
- localStorage.setItem('canto_youtube_api_key',key);
+ if(!YOUTUBE_PROXY_URL.startsWith('https://script.google.com/')){$('youtubeStatus').textContent='A pesquisa automática está sendo configurada. Tente novamente em breve.';return}
  const query=[title,artist].filter(Boolean).join(' ');
  $('searchYouTube').disabled=true;out.textContent='Pesquisando vídeos…';$('youtubeStatus').textContent='';
  try{
-  const url=new URL('https://www.googleapis.com/youtube/v3/search');
-  url.searchParams.set('part','snippet');url.searchParams.set('type','video');url.searchParams.set('videoEmbeddable','true');url.searchParams.set('maxResults','8');url.searchParams.set('q',query);url.searchParams.set('key',key);
-  const response=await fetch(url.toString());const data=await response.json();
-  if(!response.ok)throw new Error(data.error?.message||'Falha na pesquisa. Confira a chave e se a YouTube Data API v3 está ativada.');
+  const data=await new Promise((resolve,reject)=>{
+   const callback='cantoYt_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+   const script=document.createElement('script');const timer=setTimeout(()=>{cleanup();reject(new Error('Tempo esgotado ao pesquisar. Tente novamente.'))},20000);
+   function cleanup(){clearTimeout(timer);delete window[callback];script.remove()}
+   window[callback]=(result)=>{cleanup();resolve(result)};
+   script.onerror=()=>{cleanup();reject(new Error('Não foi possível acessar o serviço de pesquisa.'))};
+   const url=new URL(YOUTUBE_PROXY_URL);url.searchParams.set('q',query);url.searchParams.set('callback',callback);script.src=url.toString();document.head.append(script);
+  });
+  if(!data||data.error)throw new Error(data?.error||'Falha na pesquisa do YouTube.');
   out.replaceChildren();
   const items=(data.items||[]).filter(x=>x.id?.videoId);
   if(!items.length){out.textContent='Nenhum vídeo incorporável encontrado para essa busca.';return}
