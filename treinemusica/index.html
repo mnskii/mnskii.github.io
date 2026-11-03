@@ -1,13 +1,13 @@
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Treine Música</title><style>body{font:16px system-ui;background:#0c1425;color:#fff;margin:0;padding:18px;max-width:760px;margin:auto}textarea,input,select,button{font:inherit;border-radius:10px;padding:11px;border:1px solid #52627d}textarea{width:100%;height:190px;box-sizing:border-box;background:#192943;color:white}input{background:#192943;color:white;max-width:100%}button{background:#347ce5;color:white;margin:4px;cursor:pointer}.verse{background:#1c2b44;border-radius:14px;padding:14px;margin:12px 0}.verse input{width:100%;box-sizing:border-box}small{color:#b7c8e1}h1{font-size:1.5rem} .word{display:inline;border:0;background:transparent;color:#fff;padding:1px 2px;margin:0;text-decoration:underline;text-decoration-color:#5475a7;text-underline-offset:3px;border-radius:2px}.word:focus{outline:2px solid #8bc6ff}#wordPanel,#vocabPanel,#googlePanel{background:#1c2b44;padding:12px;border-radius:12px;margin:10px 0}#wordPanel[hidden],#phrasePanel[hidden]{display:none}#vocabList{max-height:240px;overflow:auto}#vocabList p{border-bottom:1px solid #405574;padding-bottom:8px} .hint{font-size:.85rem;color:#b7c8e1}button{background:#263d5e;border:1px solid #405574;color:#dceaff;padding:7px 10px;margin:2px;border-radius:8px;font-size:.88rem;transition:background .15s}button:active{background:#365b83} .verse{padding:9px 11px;margin:6px 0}.verse p{margin:5px 0}.verse input{padding:5px 7px;margin:0;min-height:0;height:auto;white-space:normal;overflow-wrap:anywhere}.word{padding:1px 2px;background:transparent;border:0;margin:0;font-size:inherit}#verses .verse{overflow-wrap:anywhere}#verses .verse input{font-size:.9rem}#floatingNav{position:fixed;right:12px;bottom:85px;z-index:100;background:#20344f;border:1px solid #617fa2;border-radius:14px;padding:5px;touch-action:none;box-shadow:0 3px 14px #0006;user-select:none}#floatingNav button{display:block;width:70px;margin:2px;font-size:.83rem}#sheetExportPanel{padding:12px;background:#1c2b44;border-radius:10px;margin-top:8px}#sheetExportPanel input,#sheetExportPanel select{box-sizing:border-box;width:100%;margin:4px 0}#googlePanel,#vocabPanel,#phraseLibrary,#libraryTools{display:none!important}#songReview{scroll-margin-top:10px}
 #youtubeResults .yt-results-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 #youtubeResults .yt-options[hidden]{display:none}
-#youtubePlayer{position:fixed!important;z-index:999;left:50%;bottom:12px;transform:translateX(-50%);width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:#17263d;border:1px solid #617fa2;box-shadow:0 6px 28px #000b;border-radius:14px;padding:8px!important}
+#youtubePlayer{position:fixed!important;z-index:999;left:12px;bottom:12px;transform:none;width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:#17263d;border:1px solid #617fa2;box-shadow:0 6px 28px #000b;border-radius:14px;padding:8px!important}
 #youtubePlayer[hidden]{display:none!important}
-#youtubePlayer.yt-collapsed{width:auto;left:auto;right:14px;bottom:14px;transform:none;padding:5px!important}
+#youtubePlayer.yt-collapsed{width:auto;max-width:calc(100vw - 24px);transform:none;padding:5px!important}
 #youtubePlayer.yt-collapsed #youtubePlayerFrame,#youtubePlayer.yt-collapsed #youtubeNowPlaying{display:none}
 #youtubePlayer.yt-collapsed #youtubePlayerControls{margin:0}
 #youtubePlayerFrame{width:100%;aspect-ratio:16/9;max-height:65vh}
-#youtubePlayerControls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:3px 5px}
+#youtubePlayerControls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 5px;cursor:grab;touch-action:none;user-select:none}#youtubePlayerControls:active{cursor:grabbing}#youtubePlayerControls button{cursor:pointer;touch-action:manipulation}
 #youtubeNowPlaying{margin:5px 5px 2px}
 </style><h1>🎤 Treine Música</h1><div id="googlePanel" hidden><strong>☁️ Seus dados</strong><p class="hint">Suas músicas e palavras ficam salvas neste navegador. A conexão com Google Drive requer configuração do acesso Google.</p><p><label class="hint">ID do cliente OAuth (Google Cloud) <input id="googleClientId" value="832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com" placeholder="...apps.googleusercontent.com" style="width:100%;box-sizing:border-box"></label></p><button id="googleConnect">Vincular conta Google</button><button id="googleBackup" disabled>Salvar no Drive</button><button id="googleRestore" disabled>Restaurar do Drive</button><span id="googleStatus" class="hint"></span></div><p>Cole a letra abaixo: cada linha vira um verso com áudio em inglês e transcrição automática aproximada e editável.</p><input id="song" placeholder="Nome da música" value=""><p><input id="artist" placeholder="Artista (opcional)" style="width:100%;box-sizing:border-box"></p><section class="verse" id="lastfmPanel">
 <strong>🎧 Last.fm — histórico musical</strong>
@@ -156,11 +156,42 @@ function loadYoutubeApi(){
  window.onYouTubeIframeAPIReady=function(){if(typeof previous==='function')previous();ytApiReady=true};
 }
 loadYoutubeApi();
+// Arraste pela barra de título; botões e iframe continuam interativos.
+(function enableYoutubeDragging(){
+ const box=$('youtubePlayer'),handle=$('youtubePlayerControls');
+ let drag=null;
+ function constrain(){
+  if(box.hidden)return;
+  const rect=box.getBoundingClientRect();
+  const left=Math.max(0,Math.min(rect.left,Math.max(0,window.innerWidth-rect.width)));
+  const top=Math.max(0,Math.min(rect.top,Math.max(0,window.innerHeight-rect.height)));
+  box.style.left=left+'px';box.style.top=top+'px';box.style.right='auto';box.style.bottom='auto';
+ }
+ handle.addEventListener('pointerdown',e=>{
+  if(e.target.closest('button')||e.button!==0)return;
+  const rect=box.getBoundingClientRect();
+  drag={id:e.pointerId,dx:e.clientX-rect.left,dy:e.clientY-rect.top};
+  box.style.left=rect.left+'px';box.style.top=rect.top+'px';box.style.right='auto';box.style.bottom='auto';
+  handle.setPointerCapture(e.pointerId);
+  e.preventDefault();
+ });
+ handle.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const x=Math.max(0,Math.min(e.clientX-drag.dx,Math.max(0,window.innerWidth-box.offsetWidth)));
+  const y=Math.max(0,Math.min(e.clientY-drag.dy,Math.max(0,window.innerHeight-box.offsetHeight)));
+  box.style.left=x+'px';box.style.top=y+'px';
+ });
+ const stop=e=>{if(drag&&e.pointerId===drag.id){drag=null;constrain()}};
+ handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
+ window.addEventListener('resize',constrain);
+ window.treineConstrainYoutube=constrain;
+})();
 function setYoutubePlayerCollapsed(collapsed){
  const box=$('youtubePlayer'),button=$('toggleYoutubePlayer');
  box.classList.toggle('yt-collapsed',collapsed);
  button.textContent=collapsed?'＋ Expandir':'− Recolher';
  button.setAttribute('aria-expanded',String(!collapsed));
+ requestAnimationFrame(()=>window.treineConstrainYoutube?.());
 }
 $('toggleYoutubePlayer').onclick=()=>setYoutubePlayerCollapsed(!$('youtubePlayer').classList.contains('yt-collapsed'));
 function playYouTube(videoId,title){
@@ -188,12 +219,22 @@ async function searchYouTube(){
   out.replaceChildren();
   const items=(data.items||[]).filter(x=>x.id?.videoId);
   if(!items.length){out.textContent='Nenhum vídeo incorporável encontrado para essa busca.';return}
-  const heading=document.createElement('p');heading.textContent='Escolha a gravação correta:';out.append(heading);
+  const heading=document.createElement('div');heading.className='yt-results-head';
+  const title=document.createElement('strong');title.textContent='Escolha a gravação correta:';
+  const toggle=document.createElement('button');toggle.type='button';toggle.textContent='− Recolher';
+  toggle.setAttribute('aria-expanded','true');
+  const options=document.createElement('div');options.className='yt-options';options.id='youtubeVideoOptions';
+  toggle.onclick=()=>{
+   options.hidden=!options.hidden;
+   toggle.textContent=options.hidden?'＋ Expandir':'− Recolher';
+   toggle.setAttribute('aria-expanded',String(!options.hidden));
+  };
+  heading.append(title,toggle);out.append(heading,options);
   for(const item of items){
    const b=document.createElement('button');b.type='button';b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:5px 0;padding:8px';
    const img=document.createElement('img');img.src=item.snippet.thumbnails?.default?.url||'';img.alt='';img.width=120;img.style.cssText='border-radius:6px;flex:none';
    const label=document.createElement('span');label.textContent=item.snippet.title+' — '+item.snippet.channelTitle;
-   b.append(img,label);b.onclick=()=>playYouTube(item.id.videoId,item.snippet.title);out.append(b);
+   b.append(img,label);b.onclick=()=>playYouTube(item.id.videoId,item.snippet.title);options.append(b);
   }
   $('youtubeStatus').textContent='Resultados do YouTube. A disponibilidade de incorporação e reprodução é definida pelo YouTube e pelo responsável pelo vídeo.';
  }catch(e){out.textContent='Não foi possível pesquisar: '+e.message;$('youtubeStatus').textContent='Confira a chave, a ativação da API e as restrições da chave no Google Cloud.'}
