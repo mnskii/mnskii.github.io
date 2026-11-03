@@ -11,12 +11,7 @@
 function doGet(e) {
   var p = (e && e.parameter) || {};
   var callback = String(p.callback || '');
-  var iframeTransport = String(p.transport || '') === 'iframe';
-  var requestId = String(p.requestId || '');
-  if (iframeTransport && !/^tm_[A-Za-z0-9_]+$/.test(requestId)) {
-    return ContentService.createTextOutput('Requisição inválida.').setMimeType(ContentService.MimeType.TEXT);
-  }
-  if (!iframeTransport && !/^(cantoYt|treineLastfm)_[A-Za-z0-9_]+$/.test(callback)) {
+  if (!/^(cantoYt|treineLastfm)_[A-Za-z0-9_]+$/.test(callback)) {
     return ContentService.createTextOutput('Callback inválido.')
       .setMimeType(ContentService.MimeType.TEXT);
   }
@@ -25,23 +20,23 @@ function doGet(e) {
   if (action.indexOf('lastfm_') === 0) {
     try {
       var result = handleLastfm_(action, p);
-      return respond_(p, callback, result);
+      return jsonp_(callback, result);
     } catch (err) {
-      return respond_(p, callback, { error: err && err.message ? err.message : 'Erro na integração Last.fm.' });
+      return jsonp_(callback, { error: err && err.message ? err.message : 'Erro na integração Last.fm.' });
     }
   }
 
   var query = String(p.q || '').trim();
-  if (!query) return respond_(p, callback, { error: 'Digite o título da música.' });
+  if (!query) return jsonp_(callback, { error: 'Digite o título da música.' });
   if (query.length > 180) query = query.slice(0, 180);
 
   var cache = CacheService.getScriptCache();
   var cacheKey = 'yt_' + Utilities.base64EncodeWebSafe(query.toLowerCase());
   var cached = cache.get(cacheKey);
-  if (cached) return respond_(p, callback, JSON.parse(cached));
+  if (cached) return jsonp_(callback, JSON.parse(cached));
 
   var apiKey = PropertiesService.getScriptProperties().getProperty('YOUTUBE_API_KEY');
-  if (!apiKey) return respond_(p, callback, { error: 'A chave do YouTube ainda não foi configurada no servidor.' });
+  if (!apiKey) return jsonp_(callback, { error: 'A chave do YouTube ainda não foi configurada no servidor.' });
 
   try {
     var url = 'https://www.googleapis.com/youtube/v3/search?' +
@@ -53,7 +48,7 @@ function doGet(e) {
     if (status < 200 || status >= 300) {
       var message = body && body.error && body.error.message
         ? body.error.message : 'Erro ao consultar o YouTube.';
-      return respond_(p, callback, { error: message });
+      return jsonp_(callback, { error: message });
     }
     var items = (body.items || []).filter(function(item) {
       return item.id && item.id.videoId && item.snippet;
@@ -69,9 +64,9 @@ function doGet(e) {
     });
     var result = { items: items };
     cache.put(cacheKey, JSON.stringify(result), 600);
-    return respond_(p, callback, result);
+    return jsonp_(callback, result);
   } catch (err) {
-    return respond_(p, callback, { error: 'Erro interno na pesquisa. Tente novamente.' });
+    return jsonp_(callback, { error: 'Erro interno na pesquisa. Tente novamente.' });
   }
 }
 
@@ -135,20 +130,6 @@ function lastfmCall_(method, params, apiKey, secret, useSession) {
     throw new Error(body.message || body.error || 'O Last.fm não aceitou a solicitação.');
   }
   return body;
-}
-
-function respond_(p, callback, data) {
-  if (String(p.transport || '') !== 'iframe') return jsonp_(callback, data);
-  var payload = JSON.stringify({
-    channel: 'treine-musica-proxy',
-    requestId: String(p.requestId || ''),
-    result: data
-  }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
-  var html = '<!doctype html><html><head><meta charset="utf-8"></head><body><script>' +
-    'window.parent.postMessage(' + payload + ', "*");' +
-    '</scr' + 'ipt></body></html>';
-  return HtmlService.createHtmlOutput(html)
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function jsonp_(callback, data) {
