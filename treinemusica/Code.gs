@@ -146,7 +146,7 @@ function respond_(p, callback, data) {
   }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
   var html = '<!doctype html><html><head><meta charset="utf-8"></head><body><script>' +
     'window.parent.postMessage(' + payload + ', "*");' +
-    '<\\/script></body></html>';
+    '</scr' + 'ipt></body></html>';
   return ContentService.createTextOutput(html).setMimeType(ContentService.MimeType.HTML);
 }
 
