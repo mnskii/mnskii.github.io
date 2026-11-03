@@ -9,13 +9,20 @@
 #youtubePlayerFrame{width:100%;aspect-ratio:16/9;max-height:65vh}
 #youtubePlayerControls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:3px 5px}
 #youtubeNowPlaying{margin:5px 5px 2px}
-</style><h1>🎤 Treine Música</h1><div id="googlePanel" hidden><strong>☁️ Seus dados</strong><p class="hint">Suas músicas e palavras ficam salvas neste navegador. A conexão com Google Drive requer configuração do acesso Google.</p><p><label class="hint">ID do cliente OAuth (Google Cloud) <input id="googleClientId" value="832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com" placeholder="...apps.googleusercontent.com" style="width:100%;box-sizing:border-box"></label></p><button id="googleConnect">Vincular conta Google</button><button id="googleBackup" disabled>Salvar no Drive</button><button id="googleRestore" disabled>Restaurar do Drive</button><span id="googleStatus" class="hint"></span></div><p>Cole a letra abaixo: cada linha vira um verso com áudio em inglês e transcrição automática aproximada e editável.</p><input id="song" placeholder="Nome da música" value=""><p><input id="artist" placeholder="Artista (opcional)" style="width:100%;box-sizing:border-box"></p><section class="verse" id="youtubeSection">
+</style><h1>🎤 Treine Música</h1><div id="googlePanel" hidden><strong>☁️ Seus dados</strong><p class="hint">Suas músicas e palavras ficam salvas neste navegador. A conexão com Google Drive requer configuração do acesso Google.</p><p><label class="hint">ID do cliente OAuth (Google Cloud) <input id="googleClientId" value="832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com" placeholder="...apps.googleusercontent.com" style="width:100%;box-sizing:border-box"></label></p><button id="googleConnect">Vincular conta Google</button><button id="googleBackup" disabled>Salvar no Drive</button><button id="googleRestore" disabled>Restaurar do Drive</button><span id="googleStatus" class="hint"></span></div><p>Cole a letra abaixo: cada linha vira um verso com áudio em inglês e transcrição automática aproximada e editável.</p><input id="song" placeholder="Nome da música" value=""><p><input id="artist" placeholder="Artista (opcional)" style="width:100%;box-sizing:border-box"></p><section class="verse" id="lastfmPanel">
+<strong>🎧 Last.fm — histórico musical</strong>
+<p class="hint">Vincule sua conta para registrar automaticamente as músicas reproduzidas pelo player do YouTube.</p>
+<button id="lastfmConnect" type="button">Vincular Last.fm</button>
+<button id="lastfmDisconnect" type="button" hidden>Desvincular</button>
+<span id="lastfmStatus" class="hint" aria-live="polite">Não vinculado.</span>
+</section><section class="verse" id="youtubeSection">
 <strong>▶ Encontrar e reproduzir música</strong>
 <p class="hint">Digite o título e o artista acima e procure uma gravação no YouTube. Escolha o resultado para reproduzir aqui, sem sair do Treinador de Canto.</p>
 <p class="hint">Pesquise e reproduza gravações diretamente pelo player incorporado do YouTube.</p>
 <button id="searchYouTube" type="button">🔎 Buscar no YouTube</button>
 <div id="youtubeResults" aria-live="polite"></div>
 <div id="youtubePlayer" hidden class="verse" style="padding:0;overflow:hidden">
+<div id="youtubePlayerControls"><strong>▶ Reprodução</strong><button id="toggleYoutubePlayer" type="button" aria-expanded="true">− Recolher</button></div>
 <div id="youtubePlayerFrame" style="position:relative;width:100%;aspect-ratio:16/9;background:#000"></div>
 <p id="youtubeNowPlaying" class="hint" style="padding:0 10px"></p>
 </div>
@@ -38,8 +45,117 @@ $('sheetFile').onchange=async()=>{const sel=$('sheetTab');sel.replaceChildren();
 $('appendSheet').onclick=async()=>{const id=$('sheetFile').value,tab=$('sheetTab').value;if(!id||!tab)return sheetMessage('Selecione uma planilha e uma aba.');const song=$('song').value.trim(),artist=$('artist').value.trim();const words=[...vocab].filter(v=>v.song===song).sort((a,b)=>a.word.localeCompare(b.word,'pt',{sensitivity:'base'})).map(v=>['Palavra',song,artist,v.word,v.translation,v.lang]);const lyricLines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim());const snippets=[...phrases].filter(v=>v.song===song).sort((a,b)=>lyricLines.indexOf(a.text)-lyricLines.indexOf(b.text)).map(v=>['Trecho',song,artist,v.text,v.translation,v.lang]);const values=[...words,...snippets];if(!values.length)return sheetMessage('Não há palavras ou trechos salvos nesta música.');if(!confirm('Acrescentar '+values.length+' linha(s) à aba '+tab+'? Os dados existentes serão preservados.'))return;try{sheetMessage('Acrescentando linhas…');const range="'"+tab.replace(/'/g,"''")+"'!A:F";const url='https://sheets.googleapis.com/v4/spreadsheets/'+encodeURIComponent(id)+'/values/'+encodeURIComponent(range)+':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS';const data=await sheetFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values})});sheetMessage('Exportação concluída: '+values.length+' linha(s) acrescentada(s), sem substituir as anteriores.')}catch(e){sheetMessage(e.message)}};
 
 
-// YouTube Data API: pesquisa por título + artista e reproduz no player oficial incorporado.
+// YouTube + Last.fm: player com monitoramento real de reprodução.
 const YOUTUBE_PROXY_URL='https://script.google.com/macros/s/AKfycbxhOZIkdp_R_hcOUyAG54iJQLHOAIckjZFFXrQJaDlHG2GTXAZ1TeBMG9BEt31xyPB6FQ/exec';
+const LASTFM_STORE='treine-musica-lastfm-v1';
+let ytPlayer=null,ytApiReady=false,ytSelectedTitle='',ytPlayingTimer=null,ytLastSample=0,ytListened=0,ytStartTimestamp=0,ytNowPlayingSent=false,ytScrobbleSent=false;
+let lastfmAccount=null;
+
+function jsonpRequest(params,prefix='treineLastfm_'){
+ return new Promise((resolve,reject)=>{
+  const callback=prefix+Date.now()+'_'+Math.random().toString(36).slice(2);
+  const script=document.createElement('script');
+  const timer=setTimeout(()=>{cleanup();reject(Error('Tempo esgotado ao comunicar com o servidor.'))},20000);
+  function cleanup(){clearTimeout(timer);delete window[callback];script.remove()}
+  window[callback]=data=>{cleanup();if(data&&data.error)reject(Error(data.error));else resolve(data)};
+  script.onerror=()=>{cleanup();reject(Error('Falha ao acessar o servidor do Treine Música.'))};
+  const url=new URL(YOUTUBE_PROXY_URL);
+  Object.entries({...params,callback}).forEach(([k,v])=>url.searchParams.set(k,String(v)));
+  script.src=url.toString();document.head.append(script);
+ });
+}
+function lastfmStatus(message){$('lastfmStatus').textContent=message}
+function updateLastfmUI(){
+ $('lastfmConnect').hidden=!!lastfmAccount;
+ $('lastfmDisconnect').hidden=!lastfmAccount;
+ lastfmStatus(lastfmAccount?'Conectado como '+lastfmAccount.username+'.':'Não vinculado.');
+}
+function lastfmCallbackUrl(){return location.origin+location.pathname}
+async function connectLastfm(){
+ try{
+  lastfmStatus('Preparando autorização…');
+  const cfg=await jsonpRequest({action:'lastfm_config'});
+  const callback=lastfmCallbackUrl();
+  const url='https://www.last.fm/api/auth/?api_key='+encodeURIComponent(cfg.apiKey)+'&cb='+encodeURIComponent(callback);
+  location.href=url;
+ }catch(e){lastfmStatus('Não foi possível iniciar: '+e.message)}
+}
+async function completeLastfmAuth(){
+ const token=new URLSearchParams(location.search).get('token');
+ if(!token)return;
+ history.replaceState({},document.title,location.pathname+location.hash);
+ lastfmStatus('Confirmando autorização no Last.fm…');
+ try{
+  const data=await jsonpRequest({action:'lastfm_session',token});
+  if(!data.sessionKey||!data.username)throw Error('O Last.fm não retornou os dados da conta.');
+  lastfmAccount={sessionKey:data.sessionKey,username:data.username};
+  localStorage.setItem(LASTFM_STORE,JSON.stringify(lastfmAccount));
+  updateLastfmUI();
+ }catch(e){lastfmStatus('Falha ao vincular: '+e.message)}
+}
+$('lastfmConnect').onclick=connectLastfm;
+$('lastfmDisconnect').onclick=()=>{
+ if(!confirm('Desvincular esta conta Last.fm deste navegador?'))return;
+ localStorage.removeItem(LASTFM_STORE);lastfmAccount=null;updateLastfmUI();
+};
+try{lastfmAccount=JSON.parse(localStorage.getItem(LASTFM_STORE)||'null')}catch(e){lastfmAccount=null}
+updateLastfmUI();
+if(new URLSearchParams(location.search).has('token'))completeLastfmAuth();
+
+async function sendLastfm(action,extra={}){
+ if(!lastfmAccount)return;
+ return jsonpRequest({action,sk:lastfmAccount.sessionKey,...extra});
+}
+function lastfmTrackData(){
+ return {artist:$('artist').value.trim()||'Unknown artist',track:$('song').value.trim()||ytSelectedTitle||'Unknown track'};
+}
+async function notifyNowPlaying(){
+ if(!lastfmAccount||ytNowPlayingSent)return;
+ const data=lastfmTrackData();if(!data.track||data.track==='Unknown track')return;
+ ytNowPlayingSent=true;
+ try{await sendLastfm('lastfm_nowplaying',{...data,duration:Math.round(ytPlayer.getDuration()||0)})}
+ catch(e){lastfmStatus('Erro ao atualizar Last.fm: '+e.message);ytNowPlayingSent=false}
+}
+async function submitScrobble(){
+ if(!lastfmAccount||ytScrobbleSent)return;
+ ytScrobbleSent=true;clearInterval(ytPlayingTimer);ytPlayingTimer=null;
+ const data=lastfmTrackData();
+ try{
+  await sendLastfm('lastfm_scrobble',{...data,duration:Math.round(ytPlayer.getDuration()||0),timestamp:ytStartTimestamp});
+  lastfmStatus('Reprodução registrada no Last.fm: '+data.track+' — '+data.artist);
+ }catch(e){lastfmStatus('Não foi possível registrar: '+e.message);ytScrobbleSent=false}
+}
+function sampleYoutubePlayback(){
+ if(!ytPlayer||typeof ytPlayer.getCurrentTime!=='function')return;
+ const now=Date.now(),current=ytPlayer.getCurrentTime();
+ if(ytLastSample&&current>=0){
+  const delta=current-ytLastSample;
+  if(delta>0&&delta<=10)ytListened+=delta;
+ }
+ ytLastSample=current;
+ const duration=ytPlayer.getDuration()||0;
+ const threshold=duration>0?Math.max(30,Math.min(duration/2,240)):240;
+ if(ytListened>=threshold)submitScrobble();
+}
+function onYoutubeStateChange(event){
+ if(event.data===YT.PlayerState.PLAYING){
+  if(!ytStartTimestamp)ytStartTimestamp=Math.floor(Date.now()/1000);
+  ytLastSample=ytPlayer.getCurrentTime()||0;
+  notifyNowPlaying();
+  if(!ytPlayingTimer)ytPlayingTimer=setInterval(sampleYoutubePlayback,5000);
+ }else{
+  if(ytPlayingTimer){sampleYoutubePlayback();clearInterval(ytPlayingTimer);ytPlayingTimer=null}
+ }
+ if(event.data===YT.PlayerState.ENDED){sampleYoutubePlayback()}
+}
+function loadYoutubeApi(){
+ if(window.YT&&window.YT.Player){ytApiReady=true;return}
+ if(document.querySelector('script[data-youtube-iframe-api]'))return;
+ const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';s.async=true;s.dataset.youtubeIframeApi='1';document.head.append(s);
+ const previous=window.onYouTubeIframeAPIReady;
+ window.onYouTubeIframeAPIReady=function(){if(typeof previous==='function')previous();ytApiReady=true};
+}
+loadYoutubeApi();
 function setYoutubePlayerCollapsed(collapsed){
  const box=$('youtubePlayer'),button=$('toggleYoutubePlayer');
  box.classList.toggle('yt-collapsed',collapsed);
@@ -49,29 +165,26 @@ function setYoutubePlayerCollapsed(collapsed){
 $('toggleYoutubePlayer').onclick=()=>setYoutubePlayerCollapsed(!$('youtubePlayer').classList.contains('yt-collapsed'));
 function playYouTube(videoId,title){
  const box=$('youtubePlayer'),frame=$('youtubePlayerFrame');
- frame.replaceChildren();
- const iframe=document.createElement('iframe');
- iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(videoId)+'?autoplay=0&rel=0&playsinline=1';
- iframe.title='Player do YouTube — '+title;iframe.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';iframe.referrerPolicy='strict-origin-when-cross-origin';iframe.allowFullscreen=true;
- iframe.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0';
- frame.append(iframe);box.hidden=false;setYoutubePlayerCollapsed(false);$('youtubeNowPlaying').textContent='Selecionado: '+title+' · use o player para iniciar a reprodução';$('youtubeStatus').textContent='O player permanece disponível enquanto você usa o aplicativo. Recolha-o sem interromper o vídeo.';
+ clearInterval(ytPlayingTimer);ytPlayingTimer=null;
+ ytSelectedTitle=title;ytListened=0;ytLastSample=0;ytStartTimestamp=0;ytNowPlayingSent=false;ytScrobbleSent=false;
+ if(ytPlayer&&typeof ytPlayer.destroy==='function'){try{ytPlayer.destroy()}catch(e){}}
+ frame.replaceChildren();box.hidden=false;setYoutubePlayerCollapsed(false);
+ $('youtubeNowPlaying').textContent='Selecionado: '+title+' · reproduza para registrar no Last.fm';
+ const create=()=>{
+  ytPlayer=new YT.Player('youtubePlayerFrame',{videoId:videoId,playerVars:{autoplay:0,rel:0,playsinline:1},events:{onReady:()=>{},onStateChange:onYoutubeStateChange,onError:e=>{$('youtubeStatus').textContent='O YouTube não permitiu reproduzir esta gravação (código '+e.data+').'}}});
+ };
+ if(window.YT&&window.YT.Player)create();
+ else{const old=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=function(){if(old)old();create()}}
+ $('youtubeStatus').textContent='O player permanece disponível enquanto você usa o aplicativo. Recolha-o sem interromper o vídeo.';
 }
 async function searchYouTube(){
  const title=$('song').value.trim(),artist=$('artist').value.trim(),out=$('youtubeResults');
  if(!title){$('youtubeStatus').textContent='Digite o nome da música primeiro.';return}
- if(!YOUTUBE_PROXY_URL.startsWith('https://script.google.com/')){$('youtubeStatus').textContent='A pesquisa automática está sendo configurada. Tente novamente em breve.';return}
  const query=[title,artist].filter(Boolean).join(' ');
  $('searchYouTube').disabled=true;out.textContent='Pesquisando vídeos…';$('youtubeStatus').textContent='';
  try{
-  const data=await new Promise((resolve,reject)=>{
-   const callback='cantoYt_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-   const script=document.createElement('script');const timer=setTimeout(()=>{cleanup();reject(new Error('Tempo esgotado ao pesquisar. Tente novamente.'))},20000);
-   function cleanup(){clearTimeout(timer);delete window[callback];script.remove()}
-   window[callback]=(result)=>{cleanup();resolve(result)};
-   script.onerror=()=>{cleanup();reject(new Error('Não foi possível acessar o serviço de pesquisa.'))};
-   const url=new URL(YOUTUBE_PROXY_URL);url.searchParams.set('q',query);url.searchParams.set('callback',callback);script.src=url.toString();document.head.append(script);
-  });
-  if(!data||data.error)throw new Error(data?.error||'Falha na pesquisa do YouTube.');
+  const data=await jsonpRequest({q:query,callback:'cantoYt_'+Date.now()+'_'+Math.random().toString(36).slice(2)});
+  if(!data||data.error)throw Error(data?.error||'Falha na pesquisa do YouTube.');
   out.replaceChildren();
   const items=(data.items||[]).filter(x=>x.id?.videoId);
   if(!items.length){out.textContent='Nenhum vídeo incorporável encontrado para essa busca.';return}
@@ -80,7 +193,7 @@ async function searchYouTube(){
    const b=document.createElement('button');b.type='button';b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:5px 0;padding:8px';
    const img=document.createElement('img');img.src=item.snippet.thumbnails?.default?.url||'';img.alt='';img.width=120;img.style.cssText='border-radius:6px;flex:none';
    const label=document.createElement('span');label.textContent=item.snippet.title+' — '+item.snippet.channelTitle;
-   b.append(img,label);b.onclick=()=>playYouTube(item.id.videoId,item.snippet.title);options.append(b);
+   b.append(img,label);b.onclick=()=>playYouTube(item.id.videoId,item.snippet.title);out.append(b);
   }
   $('youtubeStatus').textContent='Resultados do YouTube. A disponibilidade de incorporação e reprodução é definida pelo YouTube e pelo responsável pelo vídeo.';
  }catch(e){out.textContent='Não foi possível pesquisar: '+e.message;$('youtubeStatus').textContent='Confira a chave, a ativação da API e as restrições da chave no Google Cloud.'}
