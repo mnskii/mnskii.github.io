@@ -147,7 +147,7 @@ function respond_(p, callback, data) {
   var html = '<!doctype html><html><head><meta charset="utf-8"></head><body><script>' +
     'window.parent.postMessage(' + payload + ', "*");' +
     '</scr' + 'ipt></body></html>';
-  return ContentService.createTextOutput(html).setMimeType(ContentService.MimeType.HTML);
+  return HtmlService.createHtmlOutput(html);
 }
 
 function jsonp_(callback, data) {
