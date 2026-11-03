@@ -1,0 +1,283 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Treine Música</title><style>body{font:16px system-ui;background:#0c1425;color:#fff;margin:0;padding:18px;max-width:760px;margin:auto}textarea,input,select,button{font:inherit;border-radius:10px;padding:11px;border:1px solid #52627d}textarea{width:100%;height:190px;box-sizing:border-box;background:#192943;color:white}input{background:#192943;color:white;max-width:100%}button{background:#347ce5;color:white;margin:4px;cursor:pointer}.verse{background:#1c2b44;border-radius:14px;padding:14px;margin:12px 0}.verse input{width:100%;box-sizing:border-box}small{color:#b7c8e1}h1{font-size:1.5rem} .word{display:inline;border:0;background:transparent;color:#fff;padding:1px 2px;margin:0;text-decoration:underline;text-decoration-color:#5475a7;text-underline-offset:3px;border-radius:2px}.word:focus{outline:2px solid #8bc6ff}#wordPanel,#vocabPanel,#googlePanel{background:#1c2b44;padding:12px;border-radius:12px;margin:10px 0}#wordPanel[hidden],#phrasePanel[hidden]{display:none}#vocabList{max-height:240px;overflow:auto}#vocabList p{border-bottom:1px solid #405574;padding-bottom:8px} .hint{font-size:.85rem;color:#b7c8e1}button{background:#263d5e;border:1px solid #405574;color:#dceaff;padding:7px 10px;margin:2px;border-radius:8px;font-size:.88rem;transition:background .15s}button:active{background:#365b83} .verse{padding:9px 11px;margin:6px 0}.verse p{margin:5px 0}.verse input{padding:5px 7px;margin:0;min-height:0;height:auto;white-space:normal;overflow-wrap:anywhere}.word{padding:1px 2px;background:transparent;border:0;margin:0;font-size:inherit}#verses .verse{overflow-wrap:anywhere}#verses .verse input{font-size:.9rem}#floatingNav{position:fixed;right:12px;bottom:85px;z-index:100;background:#20344f;border:1px solid #617fa2;border-radius:14px;padding:5px;touch-action:none;box-shadow:0 3px 14px #0006;user-select:none}#floatingNav button{display:block;width:70px;margin:2px;font-size:.83rem}#sheetExportPanel{padding:12px;background:#1c2b44;border-radius:10px;margin-top:8px}#sheetExportPanel input,#sheetExportPanel select{box-sizing:border-box;width:100%;margin:4px 0}#googlePanel,#vocabPanel,#phraseLibrary,#libraryTools{display:none!important}#songReview{scroll-margin-top:10px}
+#youtubeResults .yt-results-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#youtubeResults .yt-options[hidden]{display:none}
+#youtubePlayer{position:fixed!important;z-index:999;left:50%;bottom:12px;transform:translateX(-50%);width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:#17263d;border:1px solid #617fa2;box-shadow:0 6px 28px #000b;border-radius:14px;padding:8px!important}
+#youtubePlayer[hidden]{display:none!important}
+#youtubePlayer.yt-collapsed{width:auto;left:auto;right:14px;bottom:14px;transform:none;padding:5px!important}
+#youtubePlayer.yt-collapsed #youtubePlayerFrame,#youtubePlayer.yt-collapsed #youtubeNowPlaying{display:none}
+#youtubePlayer.yt-collapsed #youtubePlayerControls{margin:0}
+#youtubePlayerFrame{width:100%;aspect-ratio:16/9;max-height:65vh}
+#youtubePlayerControls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:3px 5px}
+#youtubeNowPlaying{margin:5px 5px 2px}
+</style><h1>🎤 Treine Música</h1><div id="googlePanel" hidden><strong>☁️ Seus dados</strong><p class="hint">Suas músicas e palavras ficam salvas neste navegador. A conexão com Google Drive requer configuração do acesso Google.</p><p><label class="hint">ID do cliente OAuth (Google Cloud) <input id="googleClientId" value="832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com" placeholder="...apps.googleusercontent.com" style="width:100%;box-sizing:border-box"></label></p><button id="googleConnect">Vincular conta Google</button><button id="googleBackup" disabled>Salvar no Drive</button><button id="googleRestore" disabled>Restaurar do Drive</button><span id="googleStatus" class="hint"></span></div><p>Cole a letra abaixo: cada linha vira um verso com áudio em inglês e transcrição automática aproximada e editável.</p><input id="song" placeholder="Nome da música" value=""><p><input id="artist" placeholder="Artista (opcional)" style="width:100%;box-sizing:border-box"></p><section class="verse" id="youtubeSection">
+<strong>▶ Encontrar e reproduzir música</strong>
+<p class="hint">Digite o título e o artista acima e procure uma gravação no YouTube. Escolha o resultado para reproduzir aqui, sem sair do Treinador de Canto.</p>
+<p class="hint">Pesquise e reproduza gravações diretamente pelo player incorporado do YouTube.</p>
+<button id="searchYouTube" type="button">🔎 Buscar no YouTube</button>
+<div id="youtubeResults" aria-live="polite"></div>
+<div id="youtubePlayer" hidden class="verse" style="padding:0;overflow:hidden">
+<div id="youtubePlayerFrame" style="position:relative;width:100%;aspect-ratio:16/9;background:#000"></div>
+<p id="youtubeNowPlaying" class="hint" style="padding:0 10px"></p>
+</div>
+<p id="youtubeStatus" class="hint">A reprodução ocorre no player oficial do YouTube e respeita as restrições de cada vídeo.</p>
+</section><button id="searchLyrics">🔎 Buscar letra</button><div id="searchResults" aria-live="polite"></div><p class="hint">1 toque: traduzir palavra · 2 toques: editar palavra · 3 toques: traduzir e salvar o verso inteiro.</p><div id="wordPanel" hidden aria-live="polite"></div><div id="phrasePanel" hidden aria-live="polite" class="verse"></div><div id="vocabPanel" hidden><strong>📚 Meu vocabulário</strong> <button id="showVocab">Mostrar palavras</button><button id="exportVocab">Exportar palavras</button><div id="vocabList" hidden><label>Pesquisar palavra <input id="vocabSearch" placeholder="Digite uma letra ou palavra" autocomplete="off" style="width:100%;box-sizing:border-box"></label><p id="vocabCount" class="hint"></p><div style="overflow-x:auto"><table id="vocabTable" style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Palavra</th><th>Tradução</th><th>Idioma</th><th>Música</th><th>Ações</th></tr></thead><tbody id="vocabRows"></tbody></table></div><button id="copyVocabList">Copiar lista com traduções</button><button id="exportVocabCsv">Exportar planilha CSV</button></div></div><div id="phraseLibrary" class="verse" hidden><strong>📝 Minhas frases</strong> <button id="showPhrases">Mostrar frases</button><button id="copyPhrasesList">Copiar trechos com traduções</button><button id="exportPhrasesCsv">Exportar planilha CSV</button><div id="phrasesContent" hidden><label>Pesquisar frase <input id="phraseSearch" placeholder="Digite a primeira letra ou palavra" style="width:100%;box-sizing:border-box"></label><p id="phraseCount" class="hint"></p><div style="overflow-x:auto"><table style="width:100%;text-align:left"><thead><tr><th>Frase</th><th>Tradução</th><th>Idioma</th><th>Música</th><th>Ações</th></tr></thead><tbody id="phraseRows"></tbody></table></div></div></div><p><textarea id="lyrics" placeholder="Cole a letra completa, um verso por linha"></textarea></p><p><label>Idioma da tradução <select id="translationLang"><option value="pt">Português</option><option value="es">Espanhol</option><option value="fr">Francês</option><option value="de">Alemão</option><option value="it">Italiano</option><option value="en">Inglês</option></select></label></p><div id="libraryTools" hidden style="margin:12px 0"><label>Biblioteca <select id="library"></select></label><button id="newSong">Nova música</button><button id="deleteSong">Excluir música</button><button id="exportSongs">Exportar biblioteca</button><label style="display:inline-block">Importar <input id="importSongs" type="file" accept=".json,application/json" style="max-width:150px"></label></div><p style="font-size:.9rem;color:#c8d9f5"><strong>Convenções:</strong> MAIÚSCULAS = sílaba forte · / = pausa breve · // = pausa longa · ↑ = subida de entonação · ↓ = fechamento · ~ = prolongamento. As indicações são aproximadas e editáveis.</p><label>Velocidade <select id="speed"><option value=".7">Devagar</option><option value="1" selected>Normal</option><option value="1.15">Rápido</option></select></label><p><label>País / sotaque <select id="accent"><option value="en-US">Estados Unidos</option><option value="en-GB">Reino Unido</option><option value="en-AU">Austrália</option><option value="en-IE">Irlanda</option><option value="en-CA">Canadá</option><option value="en-IN">Índia</option><option value="en-NZ">Nova Zelândia</option></select></label> <label>Voz <select id="voice"><option value="">Automática</option></select></label></p><small>As vozes disponíveis dependem do Safari e das vozes instaladas no iPhone. A indicação de voz masculina/feminina aparece somente quando o sistema a informa no nome.</small><p><button id="prepare">Preparar versos</button><button id="copyAll">Copiar transcrições</button><button id="clearLyrics">Limpar letra</button><button id="stop">Parar áudio</button><p id="status"></p><main id="verses"></main><section id="songReview" class="verse"><h2 id="songReviewTitle">Vocabulário: Música sem título</h2><p class="hint">Palavras e trechos salvos com tradução. Use Copiar em cada item ou copie a lista inteira.</p><div id="songWords"></div><div id="songPhrases"></div><button id="copySongReview">Copiar vocabulário e trechos</button><button id="exportSongSheet">Exportar para planilha</button><div id="sheetExportPanel" hidden><p class="hint">Escolha uma planilha existente no Google Drive e a aba de destino. Novas linhas serão acrescentadas sem apagar o conteúdo atual. A autorização Google será solicitada somente durante a exportação.</p><button id="authorizeSheets">Escolher planilha do Drive</button><label>Planilha <select id="sheetFile"><option value="">Autorize para listar as planilhas</option></select></label><label>Aba <select id="sheetTab"><option value="">Selecione a planilha</option></select></label><button id="appendSheet">Acrescentar linhas à aba</button><p id="sheetStatus" class="hint"></p></div></section><div id="floatingNav" aria-label="Navegação arrastável"><button id="goTop" type="button">↑ Topo</button><button id="goBase" type="button">↓ Base</button><button id="resetSong" type="button">↻ Limpar</button></div><script>
+
+const $=id=>document.getElementById(id),key='treinador-canto-v4',oldkey='treinador-canto-v3';
+let library={},active='',rows=[];
+// Navegação flutuante: arraste pressionando o espaço entre os botões.
+(()=>{const nav=$('floatingNav');let x=0,y=0,sx=0,sy=0,moving=false;nav.addEventListener('pointerdown',e=>{moving=true;sx=e.clientX;sy=e.clientY;const r=nav.getBoundingClientRect();x=r.left;y=r.top;nav.setPointerCapture(e.pointerId)});nav.addEventListener('pointermove',e=>{if(!moving)return;nav.style.left=Math.max(0,Math.min(innerWidth-nav.offsetWidth,x+e.clientX-sx))+'px';nav.style.top=Math.max(0,Math.min(innerHeight-nav.offsetHeight,y+e.clientY-sy))+'px';nav.style.right='auto';nav.style.bottom='auto'});nav.addEventListener('pointerup',()=>moving=false);nav.addEventListener('pointercancel',()=>moving=false)})();
+$('goTop').onclick=()=>scrollTo({top:0,behavior:'smooth'});
+$('goBase').onclick=()=>$('songReview').scrollIntoView({behavior:'smooth',block:'start'});
+let sheetAccessToken='',sheetFiles=[];
+function sheetMessage(s){$('sheetStatus').textContent=s}
+$('exportSongSheet').onclick=()=>{const p=$('sheetExportPanel');p.hidden=!p.hidden};
+function sheetsAuth(){return new Promise(async(resolve,reject)=>{try{await loadGIS();const id=$('googleClientId').value.trim();if(!id)throw Error('Cliente OAuth não configurado.');const c=google.accounts.oauth2.initTokenClient({client_id:id,scope:'https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/spreadsheets',callback:r=>{if(r.error||!r.access_token)return reject(Error(r.error||'Autorização negada'));sheetAccessToken=r.access_token;resolve()}});c.requestAccessToken({prompt:'consent'})}catch(e){reject(e)}})}
+async function sheetFetch(url,opts={}){const r=await fetch(url,{...opts,headers:{Authorization:'Bearer '+sheetAccessToken,...opts.headers}});if(!r.ok){let m='Erro '+r.status;try{m=(await r.json()).error?.message||m}catch(e){}throw Error(m)}return r.json()}
+$('authorizeSheets').onclick=async()=>{try{sheetMessage('Aguardando autorização Google…');await sheetsAuth();sheetMessage('Buscando planilhas…');const data=await sheetFetch('https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent("mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false")+'&fields=nextPageToken,files(id,name)&page_size=100&orderBy=name');sheetFiles=data.files||[];const sel=$('sheetFile');sel.replaceChildren();sel.add(new Option('Selecione a planilha',''));for(const file of sheetFiles)sel.add(new Option(file.name,file.id));sheetMessage(sheetFiles.length+' planilha(s) encontrada(s). Selecione uma.') }catch(e){sheetMessage(e.message)}};
+$('sheetFile').onchange=async()=>{const sel=$('sheetTab');sel.replaceChildren();sel.add(new Option('Selecione a aba',''));const id=$('sheetFile').value;if(!id)return;try{const data=await sheetFetch('https://sheets.googleapis.com/v4/spreadsheets/'+encodeURIComponent(id)+'?fields=sheets(properties(title))');for(const sh of data.sheets||[])sel.add(new Option(sh.properties.title,sh.properties.title));sheetMessage('Selecione a aba para acrescentar os registros.')}catch(e){sheetMessage(e.message)}};
+$('appendSheet').onclick=async()=>{const id=$('sheetFile').value,tab=$('sheetTab').value;if(!id||!tab)return sheetMessage('Selecione uma planilha e uma aba.');const song=$('song').value.trim(),artist=$('artist').value.trim();const words=[...vocab].filter(v=>v.song===song).sort((a,b)=>a.word.localeCompare(b.word,'pt',{sensitivity:'base'})).map(v=>['Palavra',song,artist,v.word,v.translation,v.lang]);const lyricLines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim());const snippets=[...phrases].filter(v=>v.song===song).sort((a,b)=>lyricLines.indexOf(a.text)-lyricLines.indexOf(b.text)).map(v=>['Trecho',song,artist,v.text,v.translation,v.lang]);const values=[...words,...snippets];if(!values.length)return sheetMessage('Não há palavras ou trechos salvos nesta música.');if(!confirm('Acrescentar '+values.length+' linha(s) à aba '+tab+'? Os dados existentes serão preservados.'))return;try{sheetMessage('Acrescentando linhas…');const range="'"+tab.replace(/'/g,"''")+"'!A:F";const url='https://sheets.googleapis.com/v4/spreadsheets/'+encodeURIComponent(id)+'/values/'+encodeURIComponent(range)+':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS';const data=await sheetFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values})});sheetMessage('Exportação concluída: '+values.length+' linha(s) acrescentada(s), sem substituir as anteriores.')}catch(e){sheetMessage(e.message)}};
+
+
+// YouTube Data API: pesquisa por título + artista e reproduz no player oficial incorporado.
+const YOUTUBE_PROXY_URL='https://script.google.com/macros/s/AKfycbxhOZIkdp_R_hcOUyAG54iJQLHOAIckjZFFXrQJaDlHG2GTXAZ1TeBMG9BEt31xyPB6FQ/exec';
+function setYoutubePlayerCollapsed(collapsed){
+ const box=$('youtubePlayer'),button=$('toggleYoutubePlayer');
+ box.classList.toggle('yt-collapsed',collapsed);
+ button.textContent=collapsed?'＋ Expandir':'− Recolher';
+ button.setAttribute('aria-expanded',String(!collapsed));
+}
+$('toggleYoutubePlayer').onclick=()=>setYoutubePlayerCollapsed(!$('youtubePlayer').classList.contains('yt-collapsed'));
+function playYouTube(videoId,title){
+ const box=$('youtubePlayer'),frame=$('youtubePlayerFrame');
+ frame.replaceChildren();
+ const iframe=document.createElement('iframe');
+ iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(videoId)+'?autoplay=0&rel=0&playsinline=1';
+ iframe.title='Player do YouTube — '+title;iframe.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';iframe.referrerPolicy='strict-origin-when-cross-origin';iframe.allowFullscreen=true;
+ iframe.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0';
+ frame.append(iframe);box.hidden=false;setYoutubePlayerCollapsed(false);$('youtubeNowPlaying').textContent='Selecionado: '+title+' · use o player para iniciar a reprodução';$('youtubeStatus').textContent='O player permanece disponível enquanto você usa o aplicativo. Recolha-o sem interromper o vídeo.';
+}
+async function searchYouTube(){
+ const title=$('song').value.trim(),artist=$('artist').value.trim(),out=$('youtubeResults');
+ if(!title){$('youtubeStatus').textContent='Digite o nome da música primeiro.';return}
+ if(!YOUTUBE_PROXY_URL.startsWith('https://script.google.com/')){$('youtubeStatus').textContent='A pesquisa automática está sendo configurada. Tente novamente em breve.';return}
+ const query=[title,artist].filter(Boolean).join(' ');
+ $('searchYouTube').disabled=true;out.textContent='Pesquisando vídeos…';$('youtubeStatus').textContent='';
+ try{
+  const data=await new Promise((resolve,reject)=>{
+   const callback='cantoYt_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+   const script=document.createElement('script');const timer=setTimeout(()=>{cleanup();reject(new Error('Tempo esgotado ao pesquisar. Tente novamente.'))},20000);
+   function cleanup(){clearTimeout(timer);delete window[callback];script.remove()}
+   window[callback]=(result)=>{cleanup();resolve(result)};
+   script.onerror=()=>{cleanup();reject(new Error('Não foi possível acessar o serviço de pesquisa.'))};
+   const url=new URL(YOUTUBE_PROXY_URL);url.searchParams.set('q',query);url.searchParams.set('callback',callback);script.src=url.toString();document.head.append(script);
+  });
+  if(!data||data.error)throw new Error(data?.error||'Falha na pesquisa do YouTube.');
+  out.replaceChildren();
+  const items=(data.items||[]).filter(x=>x.id?.videoId);
+  if(!items.length){out.textContent='Nenhum vídeo incorporável encontrado para essa busca.';return}
+  const heading=document.createElement('p');heading.textContent='Escolha a gravação correta:';out.append(heading);
+  for(const item of items){
+   const b=document.createElement('button');b.type='button';b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:5px 0;padding:8px';
+   const img=document.createElement('img');img.src=item.snippet.thumbnails?.default?.url||'';img.alt='';img.width=120;img.style.cssText='border-radius:6px;flex:none';
+   const label=document.createElement('span');label.textContent=item.snippet.title+' — '+item.snippet.channelTitle;
+   b.append(img,label);b.onclick=()=>playYouTube(item.id.videoId,item.snippet.title);options.append(b);
+  }
+  $('youtubeStatus').textContent='Resultados do YouTube. A disponibilidade de incorporação e reprodução é definida pelo YouTube e pelo responsável pelo vídeo.';
+ }catch(e){out.textContent='Não foi possível pesquisar: '+e.message;$('youtubeStatus').textContent='Confira a chave, a ativação da API e as restrições da chave no Google Cloud.'}
+ finally{$('searchYouTube').disabled=false}
+}
+$('searchYouTube').onclick=searchYouTube;
+function id(){return 'song-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)}
+function store(){try{localStorage.setItem(key,JSON.stringify({library,active}))}catch(e){$('status').textContent='Não foi possível salvar no navegador. Exporte a biblioteca.'}}
+function persist(){if(!active)return;library[active]={title:$('song').value,artist:$('artist').value,lyrics:$('lyrics').value,hints:Object.fromEntries(rows.map((r,i)=>[i+'|'+r.text,r.hint]))};store();updateList()}
+function updateList(){const sel=$('library');sel.replaceChildren();Object.entries(library).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.title||'Música sem título';sel.append(o)});sel.value=active}
+function loadSong(k){active=k;const s=library[k];if(!s)return;$('song').value=s.title;$('artist').value=s.artist||'';$('lyrics').value=s.lyrics;rows=s.lyrics.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map((text,i)=>({text,hint:s.hints?.[i+'|'+text]??approximate(text)}));updateList();render()}
+function newSong(){persist();const k=id();library[k]={title:'Nova música',lyrics:'',hints:{}};loadSong(k);store();$('song').focus()}
+try{const data=JSON.parse(localStorage.getItem(key)||'null');if(data?.library&&Object.keys(data.library).length){library=data.library;for(const s of Object.values(library)){if(s.title==='Minha primeira música')s.title=''}active=library[data.active]?data.active:Object.keys(library)[0]}else{const old=JSON.parse(localStorage.getItem(oldkey)||'{}');active=id();library[active]={title:old.song||'',lyrics:old.lyrics||'',hints:{}}}}catch(e){active=id();library[active]={title:'',lyrics:'',hints:{}}}
+function save(){persist()}
+$('library').onchange=()=>{const target=$('library').value;persist();loadSong(target)};
+$('newSong').onclick=newSong;
+$('deleteSong').onclick=()=>{if(!confirm('Excluir esta música e suas transcrições?'))return;delete library[active];if(!Object.keys(library).length){active=id();library[active]={title:'Nova música',lyrics:'',hints:{}}}loadSong(Object.keys(library)[0]);store()};
+$('exportSongs').onclick=()=>{persist();const blob=new Blob([JSON.stringify({library,active},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='biblioteca-treinador-canto.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
+$('importSongs').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!data.library||typeof data.library!=='object')throw Error();persist();library={...library,...data.library};loadSong(Object.keys(data.library)[0]);store();alert('Biblioteca importada!')}catch(err){alert('Arquivo de biblioteca inválido')}e.target.value=''};
+function refreshVoices(){const list=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith('en'));const preferred=$('voice').value;const sel=$('voice');sel.replaceChildren();const auto=document.createElement('option');auto.value='';auto.textContent='Automática';sel.append(auto);list.sort((a,b)=>Number(b.lang.toLowerCase()===$('accent').value.toLowerCase())-Number(a.lang.toLowerCase()===$('accent').value.toLowerCase())).forEach(v=>{const o=document.createElement('option');o.value=v.voiceURI;o.textContent=v.name+' ('+v.lang+')';sel.append(o)});sel.value=list.some(v=>v.voiceURI===preferred)?preferred:''}
+if('speechSynthesis'in window){speechSynthesis.onvoiceschanged=refreshVoices;setTimeout(refreshVoices,0)}$('accent').onchange=()=>{$('voice').value='';refreshVoices()};
+async function findLyrics(){
+ const title=$('song').value.trim(),artist=$('artist').value.trim(),out=$('searchResults');
+ if(!title){out.textContent='Digite o nome da música.';return}
+ const externalUrl='https://www.google.com/search?q='+encodeURIComponent([title,artist,'lyrics'].filter(Boolean).join(' '));
+ let fallbackTab=null;try{fallbackTab=window.open('about:blank','_blank');if(fallbackTab){fallbackTab.document.title='Busca de letras';fallbackTab.document.body.textContent='Procurando a letra. Esta guia será usada se não houver resultado no aplicativo.'}}catch(e){}
+ function fallback(message){out.replaceChildren();const p=document.createElement('p');p.textContent=message;out.append(p);const a=document.createElement('a');a.href=externalUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Abrir busca da letra em outra guia';a.style.color='#9cc7ff';out.append(a);if(fallbackTab&&!fallbackTab.closed){fallbackTab.location.replace(externalUrl)}}
+ out.textContent='Procurando músicas…';$('searchLyrics').disabled=true;
+ try{
+  const u=new URL('https://lrclib.net/api/search');u.searchParams.set('track_name',title);if(artist)u.searchParams.set('artist_name',artist);
+  const response=await fetch(u.toString(),{headers:{Accept:'application/json'}});if(!response.ok)throw Error('Serviço indisponível');
+  const data=await response.json();out.replaceChildren();
+  const matches=data.filter(x=>x.plainLyrics||x.syncedLyrics).slice(0,8);
+  if(!matches.length){fallback('Não encontramos a letra no catálogo. Abrimos uma busca externa para você copiar e colar.');return}
+  if(fallbackTab&&!fallbackTab.closed)fallbackTab.close();
+  const heading=document.createElement('p');heading.textContent='Selecione a música encontrada para confirmar:';out.append(heading);
+  for(const x of matches){
+   const b=document.createElement('button');b.textContent=(x.trackName||title)+' — '+(x.artistName||'Artista desconhecido')+(x.albumName?' · '+x.albumName:'');
+   b.style.display='block';b.style.width='100%';b.style.textAlign='left';
+   b.onclick=()=>{const lyric=x.plainLyrics||(x.syncedLyrics||'').replace(/^\\[[0-9:.]+\\]\\s*/gm,'').trim();
+    if(!lyric){out.textContent='Esta versão não contém letra utilizável.';return}
+    if($('lyrics').value.trim()&&!confirm('Substituir a letra atual? As alterações salvas desta música serão substituídas.'))return;
+    $('song').value=x.trackName||title;$('artist').value=x.artistName||artist;
+    $('lyrics').value=lyric;rows=[];render();out.textContent='Letra carregada de LRCLIB. Confira a versão antes de treinar.';
+   };out.append(b)
+  }
+  const credit=document.createElement('small');credit.textContent='Resultados: LRCLIB. A disponibilidade depende do catálogo e das permissões da fonte.';out.append(credit);
+ }catch(e){fallback('Não foi possível carregar a letra automaticamente. Abrimos uma busca externa para copiar e colar.')}
+ finally{$('searchLyrics').disabled=false}
+}
+$('searchLyrics').onclick=findLyrics;
+function speak(s){if(!('speechSynthesis'in window)){alert('Este navegador não oferece síntese de voz. Abra no Safari.');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang=$('accent').value;u.rate=Number($('speed').value);let vs=speechSynthesis.getVoices();u.voice=vs.find(v=>v.voiceURI===$('voice').value)||vs.find(v=>v.lang.toLowerCase()===$('accent').value.toLowerCase())||vs.find(v=>v.lang.toLowerCase().startsWith('en'))||null;speechSynthesis.speak(u)}
+
+const dictionary={i:'ái',you:'iú',your:'iór',"you're":'iór',me:'mí',my:'mái',we:'uí',our:'áuer',they:'dêi',them:'dém',he:'rí',she:'shí',it:'ít',is:'íz',are:'ár',was:'uóz',were:'uêr',be:'bí',been:'bín',am:'ém',a:'â',an:'ân',the:'dâ',and:'énd',or:'ór',but:'bât',of:'âv',to:'tú',for:'fór',from:'frâm',in:'ín',on:'ón',at:'ét',with:'uíd',without:'uidáut',this:'dís',that:'dét',these:'díz',those:'dôuz',there:'dér',here:'rír',where:'uér',when:'uén',why:'uái',what:'uót',who:'rú',whom:'rúm',how:'ráu',all:'ól',no:'nôu',not:'nót',yes:'iés',do:'dú',does:'dâz',did:'díd',dont:'dôunt',"don't":'dôunt',"didn't":'dídânt',"can't":'ként',cannot:'kénót',could:'kúd',would:'uúd',should:'shúd',will:'uíl',"won't":'uôunt',can:'kén',have:'rév',has:'réz',had:'réd',if:'íf',then:'dén',than:'dén',so:'sôu',as:'éz',just:'djâst',like:'láik',love:'lâv',life:'láif',live:'lív',heart:'rárt',world:'uêrld',time:'táim',day:'dêi',night:'náit',light:'láit',right:'ráit',wrong:'rông',long:'lóng',strong:'stróng',song:'sóng',sing:'síng',say:'sêi',said:'séd',tell:'tél',told:'tôuld',know:'nôu',knew:'niú',think:'thínk',thought:'thót',see:'sí',saw:'só',look:'lúk',looking:'lúking',go:'gôu',going:'gôuing',gone:'gón',come:'kâm',coming:'kâming',back:'bék',away:'âuêi',again:'âguén',never:'néver',ever:'éver',always:'óluêiz',forever:'foréver',still:'stíl',more:'mór',one:'uân',two:'tú',three:'thrí',first:'fârst',last:'lést',only:'ôunli',every:'évri',everything:'évriting',nothing:'nâthing',something:'sâmthing',someone:'sâmuân',anyone:'éniuân',another:'ânâder',other:'âder',some:'sâm',any:'éni',many:'méni',much:'mâtch',too:'tú',very:'véri',really:'ríali',now:'náu',today:'tudêi',tomorrow:'tumórou',yesterday:'iésterdei',before:'bifór',after:'éfter',until:'ântíl',while:'uáil',because:'bicóz',maybe:'mêibi',baby:'bêibi',girl:'gârl',boy:'bói',man:'mén',woman:'uúman',people:'pípol',home:'rôum',house:'ráus',door:'dór',eyes:'áiz',eye:'ái',face:'fêis',hand:'rénd',hands:'réndz',hold:'rôuld',touch:'tâtch',kiss:'kís',cry:'krái',tears:'tírz',smile:'smáil',feel:'fíl',feeling:'fíling',need:'níd',want:'uónt',give:'guív',take:'têik',make:'mêik',made:'mêid',let:'lét',keep:'kíp',leave:'lív',left:'léft',stay:'stêi',wait:'uêit',believe:'bilív',hope:'rôup',dream:'drím',fall:'fól',falling:'fóling',down:'dáun',up:'âp',out:'áut',over:'ôuver',under:'ânder',through:'thrú',together:'tuguéder',apart:'âpárt',alone:'âlôun',lost:'lóst',found:'fáund',break:'brêik',broken:'brôuken',bell:'bél',bells:'bélz',tolls:'tôulz',toll:'tôul',whenever:'uenéver',wherever:'ueréver',fire:'fáier',rain:'rêin',sun:'sân',moon:'mún',stars:'stárz',sky:'skái',sea:'sí',ocean:'ôushan',blue:'blú',black:'blék',white:'uáit',good:'gúd',bad:'béd',better:'béter',best:'bést',hard:'rárd',easy:'ízi',enough:'inâf',please:'plíz',thank:'thénk',sorry:'sóri',hello:'relôu',goodbye:'gudbái',oh:'ôu',yeah:'ié',hey:'rêi',ooh:'ú',ah:'á',im:'áim',"i'm":'áim',ive:'áiv',"i've":'áiv',ill:'áil',"i'll":'áil',youre:'iór',youve:'iúv',"you've":'iúv',thats:'déts',"that's":'déts',its:'íts',"it's":'íts',theres:'dérz',"there's":'dérz'};
+function approximateWord(word){const lower=word.toLowerCase();if(dictionary[lower])return dictionary[lower];let s=lower.replace(/tion\b/g,'shân').replace(/sion\b/g,'jân').replace(/ture\b/g,'tchâr').replace(/igh/g,'ái').replace(/ough/g,'ôu').replace(/eigh/g,'êi').replace(/ph/g,'f').replace(/sh/g,'sh').replace(/ch/g,'tch').replace(/th/g,'th').replace(/ck/g,'k').replace(/qu/g,'ku').replace(/ee/g,'í').replace(/oo/g,'ú').replace(/ea/g,'í').replace(/ai/g,'êi').replace(/ay/g,'êi').replace(/ow\b/g,'ôu').replace(/ou/g,'áu').replace(/ing\b/g,'ing').replace(/er\b/g,'âr').replace(/ed\b/g,'d').replace(/y\b/g,'i').replace(/e\b/g,'').replace(/w/g,'u').replace(/j/g,'dj');return s}
+// Convenções de canto: sílaba tônica destacada, pausas e contorno de frase.
+// Não representa análise acústica da gravação original.
+const reviewedPhrases={
+'i stumble in the night':'Ái STÂM-bâl in dâ NÁIT',
+'never really knew what it would\'ve been like':'NÉ-vâr RÍ-â-li NIÚ uót it UÚ-dâv bin LÁIK',
+'when a lonely heart breaks':'Uén â LÔUN-li RÁRT BRÊIKS',
+'it\'s the one that forsakes':'Its dâ UÂN dét fâr-SÊIKS',
+'it\'s the dream that we stole':'Its dâ DRÍM dét uí STÔUL',
+'and i\'m missing you more':'Énd áim MÍ-sing iú MÓR',
+'than the fire that will roar':'Dén dâ FÁI-âr dét uíl RÓR',
+'there\'s a hole in my soul':'Dérz â RÔUL in mái SÔUL',
+'hole in my soul':'RÔUL in mái SÔUL',
+'for you, it\'s goodbye':'Fâr IÚ / its gud-BÁI',
+'for me, it\'s to cry':'Fâr MÍ / its tâ KRÁI',
+'for whom the bell tolls':'Fâr RÚM dâ BÉL TÔULZ',
+'for me':'Fâr MÍ',
+'i\'ll follow you anywhere':'Áil FÓ-lôu iú É-ni-uér'
+};
+const stressWords={
+stumble:'STÂM-bâl',never:'NÉ-vâr',really:'RÍ-â-li',wouldve:'UÚ-dâv',heartache:'RÁRT-êik',
+everything:'ÉV-ri-thing',couldnt:'KÚ-dânt',turbulent:'TÂR-biâ-lânt',didnt:'DÍ-dânt',
+myself:'mái-SÉLF',losing:'LÚ-zing',lonely:'LÔUN-li',forsakes:'fâr-SÊIKS',
+missing:'MÍ-sing',fire:'FÁI-âr',goodbye:'gud-BÁI',magazine:'mé-gâ-ZÍN',
+picture:'PÍK-tchâr',party:'PÁR-ti',shouldnt:'SHÚ-dânt',hanging:'RÉN-guing',
+someone:'SÂM-uân',little:'LÍ-tâl',inside:'in-SÁID',precious:'PRÉ-shâs',
+without:'uid-ÁUT',daylight:'DÊI-láit',promise:'PRÓ-mis',gonna:'GÂ-nâ',
+helpless:'RÉLP-lâs',devil:'DÉ-vâl',follow:'FÓ-lôu',anywhere:'É-ni-uér'
+};
+function approximate(line){
+const clean=line.trim();
+const normalized=clean.toLowerCase().replace(/[’]/g,"'").replace(/[.!?,;:]+$/g,'').replace(/\s+/g,' ').trim();
+let phonetic=reviewedPhrases[normalized];
+if(!phonetic){
+phonetic=clean.replace(/[A-Za-z]+(?:['’][A-Za-z]+)*/g,word=>{
+ const k=word.toLowerCase().replace(/[’']/g,'');
+ const v=stressWords[k]||approximateWord(word);
+ // Para palavras sem verbete revisado, realça o núcleo da palavra sem fingir precisão IPA.
+ return stressWords[k]?v:v.replace(/^[a-zà-ÿ]+/i,m=>m.toUpperCase());
+});
+phonetic=phonetic.replace(/[,;:]\s*/g,' / ').replace(/[.!]\s*/g,' // ').replace(/\?\s*/g,' ↑ ').replace(/!\s*/g,' ↓ ');
+}
+if(/[?]\s*$/.test(clean)&&!phonetic.includes('↑'))phonetic+=' ↑';
+else if(/[.!]\s*$/.test(clean)&&!phonetic.includes('//'))phonetic+=' //';
+return phonetic.replace(/\s+/g,' ').trim();
+}
+
+const vocabKey='treinador-canto-vocab-v1',langKey='treinador-canto-translation-lang';
+let vocab=[];try{vocab=JSON.parse(localStorage.getItem(vocabKey)||'[]');if(!Array.isArray(vocab))vocab=[]}catch(e){vocab=[]}
+$('translationLang').value=localStorage.getItem(langKey)||'pt';
+$('translationLang').onchange=()=>localStorage.setItem(langKey,$('translationLang').value);
+function saveVocab(){try{localStorage.setItem(vocabKey,JSON.stringify(vocab));renderSongReview()}catch(e){alert('Armazenamento cheio. Exporte seu vocabulário.')}}
+async function copyText(value,button){try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(value);else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.append(t);t.focus();t.select();if(!document.execCommand('copy'))throw Error('Falha ao copiar');t.remove()}if(button){const before=button.textContent;button.textContent='✓ Copiado';setTimeout(()=>button.textContent=before,1600)}}catch(e){alert('Não foi possível copiar. Selecione o texto manualmente.')}}
+function displayVocab(){const q=($('vocabSearch').value||'').trim().toLocaleLowerCase();const filtered=[...vocab].sort((a,b)=>a.word.localeCompare(b.word,'pt',{sensitivity:'base'})).filter(v=>v.word.toLocaleLowerCase().startsWith(q));const body=$('vocabRows');body.replaceChildren();$('vocabCount').textContent=filtered.length+' de '+vocab.length+' palavras';for(const v of filtered){const tr=document.createElement('tr');for(const val of [v.word,v.translation,v.lang,v.song||'']){const td=document.createElement('td');td.textContent=val;td.style.padding='8px 5px';td.style.borderBottom='1px solid #405574';tr.append(td)}const actions=document.createElement('td');const edit=document.createElement('button');edit.textContent='Editar';edit.onclick=()=>{const val=prompt('Editar tradução de '+v.word,v.translation);if(val===null)return;if(!val.trim())return alert('Tradução não pode ficar vazia');v.translation=val.trim();saveVocab();displayVocab()};const del=document.createElement('button');del.textContent='Excluir';del.onclick=()=>{if(!confirm('Excluir '+v.word+' do vocabulário?'))return;vocab=vocab.filter(x=>x!==v);saveVocab();displayVocab()};const copy=document.createElement('button');copy.textContent='Copiar';copy.onclick=()=>copyText(v.word+' — '+v.translation,copy);actions.append(copy,edit,del);tr.append(actions);body.append(tr)}}
+$('vocabSearch').addEventListener('input',displayVocab);
+$('copyVocabList').onclick=()=>{const q=$('vocabSearch').value.trim().toLocaleLowerCase();const lines=[...vocab].filter(v=>v.word.toLocaleLowerCase().startsWith(q)).sort((a,b)=>a.word.localeCompare(b.word,'pt',{sensitivity:'base'})).map(v=>v.word+' — '+v.translation);if(!lines.length)return alert('Nenhuma palavra para copiar.');copyText(lines.join('\n'),$('copyVocabList'))};
+$('exportVocabCsv').onclick=()=>{const cell=x=>'"'+String(x??'').replace(/"/g,'""')+'"';const lines=[['Palavra','Tradução','Idioma','Música'],...[...vocab].sort((a,b)=>a.word.localeCompare(b.word,'pt',{sensitivity:'base'})).map(v=>[v.word,v.translation,v.lang,v.song||''])];const csv='\uFEFF'+lines.map(r=>r.map(cell).join(';')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='vocabulario-treinador-canto.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)};
+$('showVocab').onclick=()=>{const x=$('vocabList');x.hidden=!x.hidden;if(!x.hidden)displayVocab()};
+$('exportVocab').onclick=()=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(vocab,null,2)],{type:'application/json'}));a.href=url;a.download='meu-vocabulario-canto.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)};
+const phraseKey='treinador-canto-frases-v1';let phrases=[];try{phrases=JSON.parse(localStorage.getItem(phraseKey)||'[]');if(!Array.isArray(phrases))phrases=[]}catch(e){phrases=[]}
+function songReviewText(){const song=$('song').value.trim(),artist=$('artist').value.trim(),heading='Vocabulário: '+(song||'Música sem título')+' - '+(artist||'Artista não informado');const words=[...vocab].filter(v=>v.song===song).sort((a,b)=>a.word.localeCompare(b.word,'pt',{sensitivity:'base'}));const lines=[...phrases].filter(v=>v.song===song).sort((a,b)=>{const lines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim());const ai=lines.indexOf(a.text),bi=lines.indexOf(b.text);return (ai<0?Infinity:ai)-(bi<0?Infinity:bi)});return [heading,...words.map(v=>v.word+' — '+v.translation),'','TRECHOS: '+(song||'Música sem título')+' - '+(artist||'Artista não informado'),...lines.map(v=>v.text+' — '+v.translation)].join('\\n'.replace('\\n','\n'))}
+function renderSongReview(){const song=$('song').value.trim(),artist=$('artist').value.trim();$('songReviewTitle').textContent='Vocabulário: '+(song||'Música sem título')+' - '+(artist||'Artista não informado');const groups=[{id:'songWords',title:'Palavras',items:[...vocab].filter(v=>v.song===song).sort((a,b)=>a.word.localeCompare(b.word,'pt',{sensitivity:'base'})),getText:v=>v.word},{id:'songPhrases',title:'Trechos',items:[...phrases].filter(v=>v.song===song).sort((a,b)=>{const lines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim());const ai=lines.indexOf(a.text),bi=lines.indexOf(b.text);return (ai<0?Infinity:ai)-(bi<0?Infinity:bi)}),getText:v=>v.text}];for(const group of groups){const root=$(group.id);root.replaceChildren();const heading=document.createElement('h3');heading.textContent=group.title+' ('+group.items.length+')';root.append(heading);if(!group.items.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='Nenhum item salvo para esta música.';root.append(empty)}for(const v of group.items){const row=document.createElement('div');row.style.borderBottom='1px solid #405574';row.style.padding='8px 0';const desc=document.createElement('div');desc.textContent=group.getText(v)+' — '+v.translation;const btn=document.createElement('button');btn.textContent='Copiar';btn.onclick=()=>copyText(group.getText(v)+' — '+v.translation,btn);row.append(desc,btn);root.append(row)}}}
+$('copySongReview').onclick=e=>copyText(songReviewText(),e.currentTarget);
+function savePhrases(){try{localStorage.setItem(phraseKey,JSON.stringify(phrases));renderSongReview()}catch(e){alert('Armazenamento cheio. Exporte as frases.')}}
+function displayPhrases(){const q=$('phraseSearch').value.trim().toLocaleLowerCase();const data=[...phrases].sort((a,b)=>{const lines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim());const ai=lines.indexOf(a.text),bi=lines.indexOf(b.text);return (ai<0?Infinity:ai)-(bi<0?Infinity:bi)}).filter(v=>v.text.toLocaleLowerCase().startsWith(q));$('phraseCount').textContent=data.length+' de '+phrases.length+' frases';const tbody=$('phraseRows');tbody.replaceChildren();for(const v of data){const tr=document.createElement('tr');for(const value of [v.text,v.translation,v.lang,v.song||'']){const td=document.createElement('td');td.textContent=value;td.style.padding='8px 5px';td.style.borderBottom='1px solid #405574';tr.append(td)}const td=document.createElement('td');const edit=document.createElement('button');edit.textContent='Editar';edit.onclick=()=>{const val=prompt('Editar tradução:',v.translation);if(val===null)return;if(!val.trim())return alert('Digite uma tradução.');v.translation=val.trim();savePhrases();displayPhrases()};const del=document.createElement('button');del.textContent='Excluir';del.onclick=()=>{if(confirm('Excluir esta frase?')){phrases=phrases.filter(x=>x!==v);savePhrases();displayPhrases()}};const copy=document.createElement('button');copy.textContent='Copiar';copy.onclick=()=>copyText(v.text+'\n'+v.translation,copy);td.append(copy,edit,del);tr.append(td);tbody.append(tr)}}
+$('showPhrases').onclick=()=>{const e=$('phrasesContent');e.hidden=!e.hidden;if(!e.hidden)displayPhrases()};
+$('phraseSearch').oninput=displayPhrases;
+$('copyPhrasesList').onclick=()=>{const q=$('phraseSearch').value.trim().toLocaleLowerCase();const lines=[...phrases].filter(v=>v.text.toLocaleLowerCase().startsWith(q)).sort((a,b)=>{const lines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim());const ai=lines.indexOf(a.text),bi=lines.indexOf(b.text);return (ai<0?Infinity:ai)-(bi<0?Infinity:bi)}).map(v=>v.text+'\n'+v.translation);if(!lines.length)return alert('Nenhum trecho para copiar.');copyText(lines.join('\n\n'),$('copyPhrasesList'))};
+$('exportPhrasesCsv').onclick=()=>{const quote=x=>'"'+String(x??'').replace(/"/g,'""')+'"';const data=[['Frase','Tradução','Idioma','Música'],...[...phrases].sort((a,b)=>{const lines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim());const ai=lines.indexOf(a.text),bi=lines.indexOf(b.text);return (ai<0?Infinity:ai)-(bi<0?Infinity:bi)}).map(v=>[v.text,v.translation,v.lang,v.song||''])];const blob=new Blob(['\\uFEFF'.replace('\\uFEFF','\uFEFF')+data.map(r=>r.map(quote).join(';')).join('\\r\\n'.replace('\\r\\n','\r\n'))],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='frases-treinador-canto.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)};
+let phraseRequestId=0;
+async function phraseAction(line,p){const panel=$('phrasePanel'),requestId=++phraseRequestId;panel.hidden=false;p.insertAdjacentElement('afterend',panel);panel.replaceChildren();const label=document.createElement('strong');label.textContent='Tradução do verso';panel.append(label);const source=document.createElement('p');source.textContent=line;panel.append(source);const field=document.createElement('textarea');field.placeholder='Tradução da frase (editável)';field.style.height='95px';panel.append(field);const status=document.createElement('small');status.textContent='Traduzindo…';panel.append(status);const lang=$('translationLang').value;const existing=phrases.find(x=>x.text===line&&x.lang===lang);if(existing){field.value=existing.translation;status.textContent='Tradução salva anteriormente'}else{try{const value=await translateWord(line,lang);if(requestId!==phraseRequestId)return;field.value=value;status.textContent='Revise a tradução antes de salvar.'}catch(e){if(requestId!==phraseRequestId)return;status.textContent='Não foi possível traduzir automaticamente. Você pode digitar a tradução.'}}
+const save=document.createElement('button');save.textContent='💾 Salvar em minhas frases';save.onclick=()=>{const translation=field.value.trim();if(!translation)return alert('Digite uma tradução antes de salvar.');const prev=phrases.find(x=>x.text===line&&x.lang===lang);if(prev){prev.translation=translation;prev.song=$('song').value}else phrases.push({text:line,translation,lang,song:$('song').value,createdAt:new Date().toISOString()});savePhrases();if(!$('phrasesContent').hidden)displayPhrases();panel.hidden=true;panel.replaceChildren();$('status').textContent='Frase salva em Minhas frases'};const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>{phraseRequestId++;panel.hidden=true;panel.replaceChildren()};panel.append(save,close)}
+const cache=new Map();
+async function translateWord(word,lang){const k=word.toLowerCase()+'|'+lang;if(cache.has(k))return cache.get(k);if(lang==='en')return word;const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(word)+'&langpair=en|'+lang;const r=await fetch(url);if(!r.ok)throw Error('Tradução indisponível');const data=await r.json();const t=data.responseData?.translatedText;if(!t||Number(data.responseStatus)!==200)throw Error('Tradução indisponível');cache.set(k,t);return t}
+let pressTimer=null,pressTriggered=false,translationDismissTimer=null,translationRequestId=0;
+function scheduleTranslationDismiss(panel){clearTimeout(translationDismissTimer);translationDismissTimer=setTimeout(()=>{panel.hidden=true;panel.replaceChildren()},5000)}
+const offlinePT={i:'eu',you:'você',my:'meu',me:'mim',love:'amor',heart:'coração',night:'noite',day:'dia',dream:'sonho',fire:'fogo',soul:'alma',goodbye:'adeus',cry:'chorar',lonely:'solitário',breaks:'quebra',missing:'sentindo falta',more:'mais',the:'o/a',a:'um/uma',in:'em',and:'e',for:'para',when:'quando',there:'lá',here:'aqui',know:'saber',never:'nunca',always:'sempre',song:'música',sing:'cantar',fall:'cair',bell:'sino',tolls:'toca',with:'com',without:'sem',we:'nós',they:'eles/elas',who:'quem',where:'onde',why:'por quê',what:'o que',yes:'sim',no:'não',time:'tempo',world:'mundo',see:'ver',look:'olhar',go:'ir',come:'vir',back:'voltar',one:'um',two:'dois',three:'três',blue:'azul',white:'branco',black:'preto'};
+async function wordAction(word,mode,anchor){
+ const panel=$('wordPanel'),lang=$('translationLang').value,requestId=++translationRequestId;
+ clearTimeout(translationDismissTimer);
+ if(anchor)anchor.insertAdjacentElement('afterend',panel);
+ panel.hidden=false;panel.replaceChildren();
+ const heading=document.createElement('strong');heading.textContent=word;panel.append(heading);
+ const info=document.createElement('p');info.textContent='Traduzindo…';panel.append(info);
+ let translation='';
+ try{translation=await translateWord(word,lang);if(requestId!==translationRequestId)return}
+ catch(e){if(requestId!==translationRequestId)return;if(lang==='pt'&&offlinePT[word.toLowerCase()])translation=offlinePT[word.toLowerCase()]}
+ if(mode==='view'){info.textContent=translation||'Tradução indisponível. Tente novamente.';scheduleTranslationDismiss(panel);return}
+ info.remove();
+ const label=document.createElement('label');label.textContent='Tradução (editável)';
+ const field=document.createElement('input');field.value=translation;field.placeholder='Digite ou corrija a tradução';field.style.width='100%';field.style.boxSizing='border-box';
+ label.append(field);panel.append(label);
+ const saveBtn=document.createElement('button');saveBtn.textContent='💾 Salvar em meu vocabulário';
+ saveBtn.onclick=()=>{
+  const value=field.value.trim();if(!value){alert('Digite uma tradução antes de salvar.');return}
+  const existing=vocab.find(x=>x.word.toLowerCase()===word.toLowerCase()&&x.lang===lang);
+  if(existing){existing.translation=value;existing.song=$('song').value}else vocab.unshift({word,translation:value,lang,song:$('song').value,createdAt:new Date().toISOString()});
+  saveVocab();if(!$('vocabList').hidden)displayVocab();panel.hidden=true;panel.replaceChildren()
+ };
+ const closeBtn=document.createElement('button');closeBtn.textContent='Fechar';closeBtn.onclick=()=>{panel.hidden=true;panel.replaceChildren()};
+ panel.append(saveBtn,closeBtn);
+}
+function addClickableWords(p,line){
+ p.replaceChildren();const tokens=line.match(/[A-Za-zÀ-ÿ]+(?:['’][A-Za-zÀ-ÿ]+)*|[^A-Za-zÀ-ÿ]+/g)||[];
+ // A contagem é compartilhada entre todas as palavras do verso, sem depender de click/dblclick do Safari.
+ let taps=0,lastTap=0,tapTimer=null;
+ const reset=()=>{taps=0;lastTap=0;clearTimeout(tapTimer)};
+ for(const t of tokens){
+  if(!/^[A-Za-zÀ-ÿ]/.test(t)){p.append(document.createTextNode(t));continue}
+  const b=document.createElement('button');b.className='word';b.textContent=t;b.type='button';b.setAttribute('aria-label','Traduzir '+t);b.style.touchAction='manipulation';b.style.userSelect='none';b.style.webkitUserSelect='none';b.style.webkitTouchCallout='none';
+  let downAt=0,longTimer=null,longHandled=false,lastPointer=0;
+  const handleTap=()=>{const now=Date.now();if(now-lastTap>850)taps=0;lastTap=now;taps++;clearTimeout(tapTimer);
+   if(taps>=3){reset();phraseAction(line,p);return}
+   tapTimer=setTimeout(()=>{const count=taps;reset();wordAction(t,count===2?'edit':'view',p)},850)
+  };
+  b.addEventListener('pointerdown',e=>{downAt=Date.now();longHandled=false;clearTimeout(longTimer);longTimer=setTimeout(()=>{longHandled=true;reset();wordAction(t,'edit',p)},1000)});
+  b.addEventListener('pointerup',e=>{clearTimeout(longTimer);if(longHandled)return;lastPointer=Date.now();if(Date.now()-downAt<1000)handleTap()});
+  b.addEventListener('pointercancel',()=>clearTimeout(longTimer));
+  b.addEventListener('pointerleave',()=>clearTimeout(longTimer));
+  b.addEventListener('contextmenu',e=>{e.preventDefault();clearTimeout(longTimer);if(!longHandled){longHandled=true;reset();wordAction(t,'edit',p)}});
+  // Suporte a teclado e navegadores sem Pointer Events; evita contar duas vezes no iPhone.
+  b.addEventListener('click',e=>{if(Date.now()-lastPointer<900)return;if(e.detail===0)handleTap()});
+  p.append(b)
+ }
+}
+
+let driveToken='',driveFileId='';
+const driveScope='https://www.googleapis.com/auth/drive.appdata',driveName='treinador-canto-backup.json';
+$('googleClientId').value=localStorage.getItem('canto-google-client-id')||'832042839026-a02tao06a7rer02ccr7c7s196jvldadu.apps.googleusercontent.com';
+$('googleClientId').onchange=()=>localStorage.setItem('canto-google-client-id',$('googleClientId').value.trim());
+function googleMessage(s){$('googleStatus').textContent=' '+s}
+function gisReady(){return !!(window.google&&google.accounts&&google.accounts.oauth2)}
+function loadGIS(){return new Promise((resolve,reject)=>{if(gisReady())return resolve();const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=resolve;s.onerror=()=>reject(Error('Falha ao carregar login Google'));document.head.append(s)})}
+function authorizeDrive(){return new Promise(async(resolve,reject)=>{try{await loadGIS();const clientId=$('googleClientId').value.trim();if(!/^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(clientId))throw Error('Informe um ID OAuth de aplicativo Web válido do Google Cloud.');localStorage.setItem('canto-google-client-id',clientId);const c=google.accounts.oauth2.initTokenClient({client_id:clientId,scope:driveScope,callback:r=>{if(r.error||!r.access_token){reject(Error(r.error||'Autorização não concedida'));return}driveToken=r.access_token;$('googleBackup').disabled=false;$('googleRestore').disabled=false;googleMessage('Conta vinculada nesta sessão. Escolha salvar ou restaurar.');resolve()}});c.requestAccessToken({prompt:'consent'})}catch(e){reject(e)}})}
+async function driveRequest(url,options={}){const r=await fetch(url,{...options,headers:{Authorization:'Bearer '+driveToken,...(options.headers||{})}});if(!r.ok){let msg='Erro '+r.status;try{const e=await r.json();msg=e.error?.message||msg}catch(x){}throw Error(msg)}return r}
+async function findBackup(){const q=encodeURIComponent("name = '"+driveName+"' and 'appDataFolder' in parents and trashed = false");const r=await driveRequest('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name),nextPageToken&q='+q);const data=await r.json();return data.files?.[0]?.id||null}
+async function backupDrive(){if(!driveToken)throw Error('Vincule a conta Google primeiro.');persist();const payload={version:1,savedAt:new Date().toISOString(),library,active,vocab,phrases,translationLang:$('translationLang').value};const id=await findBackup();const boundary='canto_'+Date.now();const metadata=id?{}:{name:driveName,parents:['appDataFolder']};const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+JSON.stringify(payload)+'\r\n--'+boundary+'--';const url='https://www.googleapis.com/upload/drive/v3/files'+(id?'/'+id:'')+'?uploadType=multipart&fields=id';await driveRequest(url,{method:id?'PATCH':'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});googleMessage('Backup salvo na pasta privada do aplicativo no Google Drive.')}
+async function restoreDrive(){if(!driveToken)throw Error('Vincule a conta Google primeiro.');const id=await findBackup();if(!id)throw Error('Nenhum backup encontrado nesta conta Google.');const r=await driveRequest('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+'?alt=media');const data=await r.json();if(!data.library||!Array.isArray(data.vocab))throw Error('Backup inválido.');if(!confirm('Restaurar backup do Google Drive? Os dados locais serão substituídos.'))return;library=data.library;active=library[data.active]?data.active:Object.keys(library)[0];vocab=data.vocab;saveVocab();phrases=Array.isArray(data.phrases)?data.phrases:[];savePhrases();if(data.translationLang){$('translationLang').value=data.translationLang;localStorage.setItem(langKey,data.translationLang)}if(!active){newSong()}else{loadSong(active);store()}if(!$('vocabList').hidden)displayVocab();if(!$('phrasesContent').hidden)displayPhrases();googleMessage('Biblioteca, vocabulário e frases restaurados.')}
+$('googleConnect').onclick=async()=>{try{googleMessage('Aguardando autorização…');await authorizeDrive()}catch(e){googleMessage(e.message)}};
+$('googleBackup').onclick=async()=>{try{googleMessage('Salvando…');await backupDrive()}catch(e){googleMessage(e.message)}};
+$('googleRestore').onclick=async()=>{try{googleMessage('Buscando backup…');await restoreDrive()}catch(e){googleMessage(e.message)}};
+
+function render(){renderSongReview();let lines=$('lyrics').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);$('verses').replaceChildren();$('status').textContent=lines.length+' versos preparados';lines.forEach((s,i)=>{const div=document.createElement('section');div.className='verse';const n=document.createElement('small');n.textContent='Verso '+(i+1);const p=document.createElement('p');addClickableWords(p,s);const input=document.createElement('input');input.placeholder='Pronúncia aproximada em português (editável)';input.value=rows[i]?.text===s?rows[i].hint:(library[active]?.hints?.[i+'|'+s]??approximate(s));input.oninput=()=>{rows[i].hint=input.value;persist()};const b=document.createElement('button');b.textContent='🔊 Ouvir';b.onclick=()=>speak(s);const repeat=document.createElement('button');repeat.textContent='🔁 Repetir 3×';repeat.onclick=()=>{if(!('speechSynthesis'in window))return;speechSynthesis.cancel();for(let j=0;j<3;j++){let u=new SpeechSynthesisUtterance(s);u.lang=$('accent').value;u.rate=Number($('speed').value);u.voice=speechSynthesis.getVoices().find(v=>v.voiceURI===$('voice').value)||speechSynthesis.getVoices().find(v=>v.lang.toLowerCase()===$('accent').value.toLowerCase())||null;speechSynthesis.speak(u)}};div.append(n,p,input,b,repeat);$('verses').append(div)});rows=lines.map((text,i)=>({text,hint:rows[i]?.text===text?rows[i].hint:(library[active]?.hints?.[i+'|'+text]??approximate(text))}));persist()}
+$('resetSong').onclick=()=>{if(!confirm('Iniciar uma nova música? O título, artista, letra e transcrições serão limpos. O vocabulário e os trechos já salvos serão preservados.'))return;persist();const k=id();library[k]={title:'',artist:'',lyrics:'',hints:{}};active=k;rows=[];$('song').value='';$('artist').value='';$('lyrics').value='';$('wordPanel').hidden=true;$('phrasePanel').hidden=true;$('searchResults').replaceChildren();store();updateList();render();window.scrollTo({top:0,behavior:'smooth'});$('song').focus()};
+$('copyAll').onclick=async()=>{const value=rows.map(r=>r.text+'\n'+r.hint).join('\n\n');try{await navigator.clipboard.writeText(value);$('status').textContent='Letra e transcrições copiadas!'}catch(e){const t=document.createElement('textarea');t.value=value;document.body.append(t);t.select();document.execCommand('copy');t.remove();$('status').textContent='Transcrições copiadas!'}};$('clearLyrics').onclick=()=>{if(!confirm('Limpar a letra e as transcrições desta música? As outras músicas continuarão salvas.'))return;$('lyrics').value='';rows=[];render()};$('prepare').onclick=render;$('stop').onclick=()=>speechSynthesis.cancel();$('lyrics').addEventListener('input',()=>{clearTimeout(window.refresh);window.refresh=setTimeout(render,300)});$('song').addEventListener('input',save);$('artist').addEventListener('input',()=>{save();renderSongReview()});loadSong(active);
+</script></html>
