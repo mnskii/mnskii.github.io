@@ -53,15 +53,26 @@ let lastfmAccount=null;
 
 function jsonpRequest(params,prefix='treineLastfm_'){
  return new Promise((resolve,reject)=>{
-  const callback=prefix+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const script=document.createElement('script');
-  const timer=setTimeout(()=>{cleanup();reject(Error('Tempo esgotado ao comunicar com o servidor.'))},20000);
-  function cleanup(){clearTimeout(timer);delete window[callback];script.remove()}
-  window[callback]=data=>{cleanup();if(data&&data.error)reject(Error(data.error));else resolve(data)};
-  script.onerror=()=>{cleanup();reject(Error('Falha ao acessar o servidor do Treine Música.'))};
+  const requestId='tm_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  const frame=document.createElement('iframe');
+  frame.title='Comunicação com o servidor do Treine Música';
+  frame.setAttribute('aria-hidden','true');
+  frame.style.cssText='position:absolute;width:1px;height:1px;left:-9999px;border:0';
+  let finished=false;
+  function cleanup(){if(finished)return;finished=true;clearTimeout(timer);window.removeEventListener('message',onMessage);frame.remove()}
+  function onMessage(event){
+   const data=event.data;
+   if(!data||data.channel!=='treine-musica-proxy'||data.requestId!==requestId)return;
+   cleanup();
+   if(data.error)reject(Error(data.error));
+   else if(data.result&&data.result.error)reject(Error(data.result.error));
+   else resolve(data.result||{});
+  }
+  const timer=setTimeout(()=>{cleanup();reject(Error('Tempo esgotado ao comunicar com o servidor.'))},30000);
+  window.addEventListener('message',onMessage);
   const url=new URL(YOUTUBE_PROXY_URL);
-  Object.entries({...params,callback}).forEach(([k,v])=>url.searchParams.set(k,String(v)));
-  script.src=url.toString();document.head.append(script);
+  Object.entries({...params,transport:'iframe',requestId}).forEach(([k,v])=>url.searchParams.set(k,String(v)));
+  frame.src=url.toString();document.body.append(frame);
  });
 }
 function lastfmStatus(message){$('lastfmStatus').textContent=message}
