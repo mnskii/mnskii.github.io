@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Leti · Gravação em Libras</title>
-<style>body{font:16px system-ui;background:#10243b;color:white;max-width:640px;margin:auto;padding:16px}video{width:100%;max-height:66vh;background:#000;transform:scaleX(-1)}button{padding:12px;margin:8px 0;border:0;border-radius:8px;font:inherit}p{min-height:2em}</style>
-<h1>Gravação em Libras</h1><video muted autoplay playsinline></video>
+<style>body{font:16px system-ui;background:#10243b;color:white;max-width:640px;margin:auto;padding:16px}video{width:100%;max-height:66vh;background:#000;transform:scaleX(-1)}button{padding:12px;margin:8px 0;border:0;border-radius:8px;font:inherit}p{min-height:2em}#camera-panel{position:relative;z-index:1;background:#10243b}#camera-grip{touch-action:none;cursor:move;padding:6px;background:#25476c;border-radius:8px 8px 0 0}</style>
+<h1>Gravação em Libras</h1><section id="camera-panel"><div id="camera-grip">Arraste para mover a câmera</div><video muted autoplay playsinline></video></section>
 <label><input type="checkbox" id="audio"> Usar microfone</label><br>
 <button id="toggle" disabled>Gravar</button><p role="status" id="status">Conectando ao Leti…</p>
 <script>
@@ -24,6 +24,20 @@ addEventListener('message', e => {
   button.disabled = false;
   status.textContent = 'Clique em Gravar. Limite de ' + duration + ' segundos.';
 });
+const panel = document.querySelector('#camera-panel');
+const grip = document.querySelector('#camera-grip');
+grip.onpointerdown = event => {
+  const rect = panel.getBoundingClientRect();
+  const dx = event.clientX - rect.left, dy = event.clientY - rect.top;
+  grip.setPointerCapture(event.pointerId);
+  grip.onpointermove = e => {
+    panel.style.width = Math.min(rect.width, innerWidth) + 'px';
+    panel.style.position = 'fixed';
+    panel.style.left = Math.max(0,Math.min(innerWidth-panel.offsetWidth,e.clientX-dx)) + 'px';
+    panel.style.top = Math.max(0,Math.min(innerHeight-panel.offsetHeight,e.clientY-dy)) + 'px';
+  };
+  grip.onlostpointercapture = () => { grip.onpointermove = null; };
+};
 send('leti-ready');
 button.onclick = async () => {
   if (recorder?.state === 'recording') { recorder.stop(); return; }
