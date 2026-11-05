@@ -1,9 +1,9 @@
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Leti · Gravação em Libras</title>
-<style>body{font:16px system-ui;background:#10243b;color:white;max-width:640px;margin:auto;padding:16px}video{width:100%;max-height:55vh;background:#000;transform:scaleX(-1)}button{padding:12px;margin:8px 0;border:0;border-radius:8px;font:inherit}p{min-height:2em}#camera-panel{position:relative;z-index:1;background:#10243b}#camera-grip{touch-action:none;cursor:move;padding:6px;background:#25476c;border-radius:8px 8px 0 0}</style>
+<style>body{font:16px system-ui;background:#10243b;color:white;max-width:640px;margin:auto;padding:16px}video{width:100%;max-height:55vh;background:#000;transform:scaleX(-1)}button{padding:12px;margin:8px 0;border:0;border-radius:8px;font:inherit}p{min-height:2em}#camera-panel{position:relative;z-index:1;background:#10243b}#camera-grip{touch-action:none;cursor:move;padding:6px;background:#25476c;border-radius:8px 8px 0 0}#toggle{width:48px;height:48px;border-radius:50%;background:#dc2626;color:white;padding:0;margin-right:8px}#toggle:disabled{opacity:.45}#toggle[data-recording]{background:#ad1421}</style>
 <h1>Gravação em Libras</h1><section id="camera-panel"><div id="camera-grip">Arraste para mover a câmera</div><video muted autoplay playsinline></video>
 <label><input type="checkbox" id="audio"> Usar microfone</label><br>
-<button id="toggle" disabled>Gravar</button></section><p role="status" id="status">Conectando ao Leti…</p>
+<button id="toggle" type="button" disabled aria-label="Gravar anotação">●</button><span id="record-label"></span><button id="retry-camera" type="button" hidden>Habilitar câmera</button></section><p role="status" id="status">Conectando ao Leti…</p>
 <script>
 const params = new URLSearchParams(location.hash.slice(1));
 const nonce = params.get('n');
@@ -12,6 +12,24 @@ const allowed = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(ori
 const preview = document.querySelector('video');
 const button = document.querySelector('#toggle');
 const status = document.querySelector('#status');
+const label = document.querySelector('#record-label');
+const retry = document.querySelector('#retry-camera');
+let recordLabel = '';
+async function enableCamera() {
+  retry.hidden = true;
+  button.disabled = true;
+  status.textContent = 'Abrindo câmera…';
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+    preview.srcObject = stream;
+    button.disabled = false;
+    status.textContent = 'Câmera habilitada. Toque no botão vermelho para gravar.';
+  } catch(e) {
+    retry.hidden = false;
+    status.textContent = 'Não foi possível abrir a câmera: ' + e.message;
+  }
+}
+retry.onclick = enableCamera;
 let stream, recorder, timer, chunks, duration, started, busy = false;
 function send(type, extra = {}) {
   if (allowed && opener) opener.postMessage({type, nonce, ...extra}, origin);
@@ -19,10 +37,12 @@ function send(type, extra = {}) {
 addEventListener('message', e => {
   if (!allowed || e.source !== opener || e.origin !== origin || e.data?.nonce !== nonce || e.data.type !== 'leti-config') return;
   if (![5, 10, 20, 40].includes(e.data.duration)) return;
+  if (stream || duration) return;
   duration = e.data.duration;
-  button.textContent = (e.data.kind === 'comment' ? 'Gravar comentário' : 'Gravar anotação') + ' [' + duration + ' s]';
-  button.disabled = false;
-  status.textContent = 'Clique em Gravar. Limite de ' + duration + ' segundos.';
+  recordLabel = (e.data.kind === 'comment' ? 'Gravar comentário' : 'Gravar anotação') + ' [' + duration + ' s]';
+  label.textContent = recordLabel;
+  button.setAttribute('aria-label',recordLabel);
+  enableCamera();
 });
 const panel = document.querySelector('#camera-panel');
 const grip = document.querySelector('#camera-grip');
@@ -41,12 +61,14 @@ grip.onpointerdown = event => {
 send('leti-ready');
 button.onclick = async () => {
   if (recorder?.state === 'recording') { recorder.stop(); return; }
-  if (busy) return;
+  if (busy || !stream) return;
   busy = true;
   button.disabled = true;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:document.querySelector('#audio').checked});
-    preview.srcObject = stream;
+    if (document.querySelector('#audio').checked && !stream.getAudioTracks().length) {
+      const audio = await navigator.mediaDevices.getUserMedia({audio:true});
+      audio.getAudioTracks().forEach(track => stream.addTrack(track));
+    }
     const type = ['video/mp4','video/webm'].find(t => MediaRecorder.isTypeSupported(t));
     recorder = new MediaRecorder(stream, {videoBitsPerSecond:750000,...(type ? {mimeType:type} : {})});
     chunks = [];
@@ -54,21 +76,23 @@ button.onclick = async () => {
     recorder.onerror = () => { chunks = []; status.textContent = 'A gravação falhou. Tente novamente.'; };
     recorder.onstop = () => {
       clearTimeout(timer);
-      stream.getTracks().forEach(t => t.stop());
       const blob = new Blob(chunks,{type:recorder.mimeType.split(';')[0]});
       send('leti-stop',{blob, seconds:Math.min(duration,(performance.now()-started)/1000)});
       if (blob.size) { status.textContent = 'Gravação enviada ao Leti.'; close(); }
-      else { busy = false; button.disabled = false; button.textContent = 'Gravar'; }
+      else { busy = false; button.disabled = false; button.textContent = '●'; delete button.dataset.recording; label.textContent = recordLabel; button.setAttribute('aria-label',recordLabel); }
     };
     recorder.start();
     started = performance.now();
     send('leti-start');
-    button.textContent = 'Parar gravação';
+    button.textContent = '■';
+    button.dataset.recording = '';
+    button.setAttribute('aria-label','Parar gravação');
+    label.textContent = 'Parar gravação';
     button.disabled = false;
     status.textContent = 'Gravando…';
     timer = setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); },duration*1000);
   } catch(e) {
-    stream?.getTracks().forEach(t => t.stop());
+    stream?.getAudioTracks().forEach(t => { t.stop(); stream.removeTrack(t); });
     status.textContent = 'Não foi possível iniciar: ' + e.message;
     busy = false;
     button.disabled = false;
