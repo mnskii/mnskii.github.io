@@ -20,6 +20,7 @@ addEventListener('message', e => {
   if (!allowed || e.source !== opener || e.origin !== origin || e.data?.nonce !== nonce || e.data.type !== 'leti-config') return;
   if (![5, 10, 20, 40].includes(e.data.duration)) return;
   duration = e.data.duration;
+  button.textContent = (e.data.kind === 'comment' ? 'Gravar comentário' : 'Gravar anotação') + ' [' + duration + ' s]';
   button.disabled = false;
   status.textContent = 'Clique em Gravar. Limite de ' + duration + ' segundos.';
 });
